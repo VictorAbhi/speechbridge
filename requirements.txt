@@ -8,3 +8,5 @@ noisereduce
 librosa
 soundfile
 jiwer
+sentencepiece
+transformers
