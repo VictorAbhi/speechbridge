@@ -10,3 +10,4 @@ soundfile
 jiwer
 sentencepiece
 transformers
+flask
