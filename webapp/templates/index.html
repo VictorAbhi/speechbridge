@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Transcription App</title>
+</head>
+<body>
+    <h1>Upload Audio/Video for Transcription</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" accept="audio/*,video/*" required>
+        <button type="submit">Transcribe</button>
+    </form>
+    {% if transcript %}
+        <h2>Transcription:</h2>
+        <p>{{ transcript }}</p>
+    {% endif %}
+</body>
+</html>
