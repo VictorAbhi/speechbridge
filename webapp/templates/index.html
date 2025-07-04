@@ -2,17 +2,97 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Transcription App</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SpeechBridge - Transcribe Audio & Video</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.5rem;
+        }
+        .hero-section {
+            padding: 60px 20px;
+            text-align: center;
+            background: linear-gradient(135deg, #4b6cb7, #182848);
+            color: white;
+            border-radius: 0 0 30px 30px;
+        }
+        .card {
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        .btn-custom {
+            background-color: #4b6cb7;
+            color: white;
+            border-radius: 30px;
+            padding: 10px 30px;
+        }
+        footer {
+            margin-top: 50px;
+            padding: 20px 0;
+            text-align: center;
+            color: #777;
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload Audio/Video for Transcription</h1>
-    <form method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" accept="audio/*,video/*" required>
-        <button type="submit">Transcribe</button>
-    </form>
-    {% if transcript %}
-        <h2>Transcription:</h2>
-        <p>{{ transcript }}</p>
-    {% endif %}
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+    <div class="container">
+        <a class="navbar-brand" href="#">SpeechBridge</a>
+    </div>
+</nav>
+
+<section class="hero-section">
+    <div class="container">
+        <h1 class="display-5">Upload & Transcribe Audio or Video</h1>
+        <p class="lead mt-3">Clean audio, transcribe speech, and more—right from your browser.</p>
+    </div>
+</section>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card p-4">
+                <h4 class="mb-4 text-center">Upload File</h4>
+                <form action="/" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <input class="form-control" type="file" name="file" accept="audio/*,video/*" required>
+                    </div>
+                    <div class="text-center">
+                        <button type="submit" class="btn btn-custom">Transcribe</button>
+                    </div>
+                </form>
+            </div>
+
+            
+
+            {% if transcript %}
+            <div class="card p-4 mt-5">
+                <h4 class="mb-3 text-center">Transcription Result</h4>
+                <div id="transcription-result">
+                    <p class="text-muted text-center">{{ transcript }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card p-4 mt-5">
+                <h4 class="mb-3 text-center text-danger">Error</h4>
+                <div id="error-message">
+                    <p class="text-muted text-center">You have error.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <p>&copy; 2025 SpeechBridge. All rights reserved.</p>
+</footer>
+
 </body>
 </html>
