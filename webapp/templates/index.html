@@ -41,58 +41,79 @@
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
-    <div class="container">
-        <a class="navbar-brand" href="#">SpeechBridge</a>
-    </div>
-</nav>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+        <div class="container">
+            <a class="navbar-brand" href="#">SpeechBridge</a>
+        </div>
+    </nav>
 
-<section class="hero-section">
-    <div class="container">
-        <h1 class="display-5">Upload & Transcribe Audio or Video</h1>
-        <p class="lead mt-3">Clean audio, transcribe speech, and more—right from your browser.</p>
-    </div>
-</section>
+    <section class="hero-section">
+        <div class="container">
+            <h1 class="display-5">Upload & Transcribe Audio or Video</h1>
+            <p class="lead mt-3">Clean audio, transcribe speech, and more—right from your browser.</p>
+        </div>
+    </section>
 
-<div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card p-4">
-                <h4 class="mb-4 text-center">Upload File</h4>
-                <form action="/" method="post" enctype="multipart/form-data">
-                    <div class="mb-3">
-                        <input class="form-control" type="file" name="file" accept="audio/*,video/*" required>
-                    </div>
-                    <div class="text-center">
-                        <button type="submit" class="btn btn-custom">Transcribe</button>
-                    </div>
-                </form>
-            </div>
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
 
-            
-
-            {% if transcript %}
-            <div class="card p-4 mt-5">
-                <h4 class="mb-3 text-center">Transcription Result</h4>
-                <div id="transcription-result">
-                    <p class="text-muted text-center">{{ transcript }}</p>
+                <!-- Upload File Card -->
+                <div class="card p-4">
+                    <h4 class="mb-4 text-center">Upload File</h4>
+                    <form action="/" method="post" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <input class="form-control" type="file" name="file" accept="audio/*,video/*" required>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-custom">Transcribe</button>
+                        </div>
+                    </form>
                 </div>
-            </div>
-            {% endif %}
 
-            <div class="card p-4 mt-5">
-                <h4 class="mb-3 text-center text-danger">Error</h4>
-                <div id="error-message">
-                    <p class="text-muted text-center">You have error.</p>
+                <!-- Transcription Result -->
+                {% if transcript %}
+                <div class="card p-4 mt-5">
+                    <h4 class="mb-3 text-center">Transcription Result</h4>
+                    <div id="transcription-result">
+                        <p class="text-muted text-center">{{ transcript }}</p>
+                    </div>
                 </div>
+                {% endif %}
+
+                <!-- Translation Section -->
+                <div class="card p-4 mt-5">
+                    <h4 class="mb-4 text-center">Translate Text</h4>
+                    <form action="/translate" method="post">
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-custom">Translate</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Translation Result -->
+                {% if translation %}
+                <div class="card p-4 mt-5">
+                    <h4 class="mb-3 text-center">Translation Result</h4>
+                    <p class="text-muted text-center">{{ translation }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Error Message -->
+                <div class="card p-4 mt-5">
+                    <h4 class="mb-3 text-center text-danger">Error</h4>
+                    <div id="error-message">
+                        <p class="text-muted text-center">You have error.</p>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
-</div>
 
-<footer>
-    <p>&copy; 2025 SpeechBridge. All rights reserved.</p>
-</footer>
+    <footer>
+        <p>&copy; 2025 SpeechBridge. All rights reserved.</p>
+    </footer>
 
 </body>
 </html>
