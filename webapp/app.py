@@ -62,8 +62,10 @@ def transcribe():
 
         os.remove(temp_input.name)
         os.remove(audio_path)
+        
+        return transcript
 
-    return render_template("index.html", transcript=transcript)
+    return render_template("index.html")
 
 
 @app.route('/translate', methods=['POST'])
@@ -72,7 +74,8 @@ def translate_text():
         return "first transcribe audio or video file", 400
 
     translation = translate_text_nllb(transcript)
-    return render_template('index.html', translation=translation)
+    return translation
+    return render_template('index.html')
 
 
 if __name__ == "__main__":
