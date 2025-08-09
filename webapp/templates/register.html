@@ -1,19 +1,181 @@
 {% extends "base.html" %}
 
-{% block title %}Register{% endblock %}
+{% block title %}Register - Audio Transcription{% endblock %}
 
 {% block content %}
-<h2>Register</h2>
-<form action="{{ url_for('register') }}" method="post">
-    <label>Username:</label>
-    <input type="text" name="username" required><br>
+<div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
+    <div class="card" style="max-width: 400px; width: 100%;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div class="feature-icon" style="font-size: 3rem; margin-bottom: 1rem;">📝</div>
+            <h2 style="color: #1f2937; margin-bottom: 0.5rem;">Create Account</h2>
+            <p style="color: #6b7280;">Join us to start transcribing your audio files</p>
+        </div>
 
-    <label>Password:</label>
-    <input type="password" name="password" required><br>
+        {% if error %}
+        <div class="alert alert-error">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
 
-    <button type="submit">Register</button>
-</form>
-{% if error %}
-<p style="color:red;">{{ error }}</p>
-{% endif %}
+        <form action="{{ url_for('register') }}" method="post" id="registerForm">
+            <div class="form-group">
+                <label for="username">
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        👤 Username
+                    </span>
+                </label>
+                <input type="text" id="username" name="username" required 
+                       placeholder="Choose a username" autocomplete="username"
+                       minlength="3" maxlength="50">
+                <small style="color: #6b7280; font-size: 0.85rem;">
+                    At least 3 characters, letters and numbers only
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="password">
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        🔒 Password
+                    </span>
+                </label>
+                <div style="position: relative;">
+                    <input type="password" id="password" name="password" required 
+                           placeholder="Create a secure password" autocomplete="new-password"
+                           minlength="6">
+                    <button type="button" onclick="togglePassword()" 
+                            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem;"
+                            id="toggleBtn">👁️</button>
+                </div>
+                <small style="color: #6b7280; font-size: 0.85rem;">
+                    At least 6 characters long
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword">
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        🔐 Confirm Password
+                    </span>
+                </label>
+                <input type="password" id="confirmPassword" name="confirmPassword" required 
+                       placeholder="Confirm your password" autocomplete="new-password">
+                <small id="passwordMatch" style="font-size: 0.85rem;"></small>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <button type="submit" class="btn" style="width: 100%;" id="registerBtn">
+                    🚀 Create Account
+                </button>
+            </div>
+        </form>
+
+        <div style="text-align: center; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; margin-bottom: 1rem;">Already have an account?</p>
+            <a href="{{ url_for('login_page') }}" class="btn btn-secondary">
+                🔐 Sign In
+            </a>
+        </div>
+
+        <div style="margin-top: 2rem; padding: 1rem; background: #f0f9ff; border-radius: 10px; border: 1px solid #bfdbfe;">
+            <h4 style="color: #1e40af; margin-bottom: 0.5rem; font-size: 0.9rem;">🎉 Get started with:</h4>
+            <ul style="color: #3730a3; font-size: 0.85rem; line-height: 1.4; list-style: none; padding: 0;">
+                <li style="margin-bottom: 0.3rem;">🎵 Support for multiple audio formats</li>
+                <li style="margin-bottom: 0.3rem;">⚡ AI-powered transcription engine</li>
+                <li style="margin-bottom: 0.3rem;">📋 Easy copy and download options</li>
+                <li>🔒 Secure processing with no file storage</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    let passwordVisible = false;
+
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const toggleBtn = document.getElementById('toggleBtn');
+        
+        passwordVisible = !passwordVisible;
+        passwordInput.type = passwordVisible ? 'text' : 'password';
+        toggleBtn.textContent = passwordVisible ? '🙈' : '👁️';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('registerForm');
+        const registerBtn = document.getElementById('registerBtn');
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const passwordMatch = document.getElementById('passwordMatch');
+        const username = document.getElementById('username');
+
+        // Password validation
+        function checkPasswordMatch() {
+            if (confirmPassword.value === '') {
+                passwordMatch.textContent = '';
+                return;
+            }
+            
+            if (password.value === confirmPassword.value) {
+                passwordMatch.textContent = '✅ Passwords match';
+                passwordMatch.style.color = '#059669';
+            } else {
+                passwordMatch.textContent = '❌ Passwords do not match';
+                passwordMatch.style.color = '#dc2626';
+            }
+        }
+
+        // Username validation
+        function validateUsername() {
+            const value = username.value;
+            const regex = /^[a-zA-Z0-9]+$/;
+            
+            if (value && !regex.test(value)) {
+                username.setCustomValidity('Username can only contain letters and numbers');
+            } else {
+                username.setCustomValidity('');
+            }
+        }
+
+        password.addEventListener('input', checkPasswordMatch);
+        confirmPassword.addEventListener('input', checkPasswordMatch);
+        username.addEventListener('input', validateUsername);
+
+        form.addEventListener('submit', function(e) {
+            const usernameValue = username.value.trim();
+            const passwordValue = password.value;
+            const confirmPasswordValue = confirmPassword.value;
+            
+            if (!usernameValue || !passwordValue || !confirmPasswordValue) {
+                e.preventDefault();
+                alert('Please fill in all fields.');
+                return;
+            }
+
+            if (passwordValue !== confirmPasswordValue) {
+                e.preventDefault();
+                alert('Passwords do not match.');
+                return;
+            }
+
+            if (passwordValue.length < 6) {
+                e.preventDefault();
+                alert('Password must be at least 6 characters long.');
+                return;
+            }
+
+            if (usernameValue.length < 3) {
+                e.preventDefault();
+                alert('Username must be at least 3 characters long.');
+                return;
+            }
+
+            // Show loading state
+            registerBtn.innerHTML = '⏳ Creating Account...';
+            registerBtn.disabled = true;
+        });
+
+        // Focus on username field
+        username.focus();
+    });
+</script>
 {% endblock %}

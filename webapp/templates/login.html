@@ -1,19 +1,120 @@
 {% extends "base.html" %}
 
-{% block title %}Login{% endblock %}
+{% block title %}Login - Audio Transcription{% endblock %}
 
 {% block content %}
-<h2>Login</h2>
-<form action="{{ url_for('login') }}" method="post">
-    <label>Username:</label>
-    <input type="text" name="username" required><br>
+<div style="display: flex; justify-content: center; align-items: center; min-height: 60vh;">
+    <div class="card" style="max-width: 400px; width: 100%;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div class="feature-icon" style="font-size: 3rem; margin-bottom: 1rem;">🔐</div>
+            <h2 style="color: #1f2937; margin-bottom: 0.5rem;">Welcome Back</h2>
+            <p style="color: #6b7280;">Sign in to access your transcription dashboard</p>
+        </div>
 
-    <label>Password:</label>
-    <input type="password" name="password" required><br>
+        {% if error %}
+        <div class="alert alert-error">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
 
-    <button type="submit">Login</button>
-</form>
-{% if error %}
-<p style="color:red;">{{ error }}</p>
-{% endif %}
+        {% if success %}
+        <div class="alert alert-success">
+            <strong>Success:</strong> {{ success }}
+        </div>
+        {% endif %}
+
+        <form action="{{ url_for('login') }}" method="post" id="loginForm">
+            <div class="form-group">
+                <label for="username">
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        👤 Username
+                    </span>
+                </label>
+                <input type="text" id="username" name="username" required 
+                       placeholder="Enter your username" autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="password">
+                    <span style="display: flex; align-items: center; gap: 0.5rem;">
+                        🔒 Password
+                    </span>
+                </label>
+                <div style="position: relative;">
+                    <input type="password" id="password" name="password" required 
+                           placeholder="Enter your password" autocomplete="current-password">
+                    <button type="button" onclick="togglePassword()" 
+                            style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1.2rem;"
+                            id="toggleBtn">👁️</button>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 1.5rem;">
+                <button type="submit" class="btn" style="width: 100%;" id="loginBtn">
+                    🚀 Sign In
+                </button>
+            </div>
+        </form>
+
+        <div style="text-align: center; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+            <p style="color: #6b7280; margin-bottom: 1rem;">Don't have an account?</p>
+            <a href="{{ url_for('register_page') }}" class="btn btn-secondary">
+                📝 Create Account
+            </a>
+        </div>
+
+        <div style="margin-top: 2rem; padding: 1rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+            <h4 style="color: #475569; margin-bottom: 0.5rem; font-size: 0.9rem;">✨ What you'll get:</h4>
+            <ul style="color: #64748b; font-size: 0.85rem; line-height: 1.4; list-style: none; padding: 0;">
+                <li style="margin-bottom: 0.3rem;">🎵 Upload and transcribe audio files</li>
+                <li style="margin-bottom: 0.3rem;">⚡ Fast AI-powered processing</li>
+                <li style="margin-bottom: 0.3rem;">🎯 High-accuracy speech recognition</li>
+                <li>🔒 Secure and private processing</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+    let passwordVisible = false;
+
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const toggleBtn = document.getElementById('toggleBtn');
+        
+        passwordVisible = !passwordVisible;
+        passwordInput.type = passwordVisible ? 'text' : 'password';
+        toggleBtn.textContent = passwordVisible ? '🙈' : '👁️';
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('loginForm');
+        const loginBtn = document.getElementById('loginBtn');
+        
+        form.addEventListener('submit', function(e) {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                e.preventDefault();
+                alert('Please fill in all fields.');
+                return;
+            }
+            
+            // Show loading state
+            loginBtn.innerHTML = '⏳ Signing In...';
+            loginBtn.disabled = true;
+        });
+
+        // Add enter key support
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                form.submit();
+            }
+        });
+
+        // Focus on username field
+        document.getElementById('username').focus();
+    });
+</script>
 {% endblock %}

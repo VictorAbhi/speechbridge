@@ -1,12 +1,226 @@
 {% extends "base.html" %}
 
-{% block title %}Home{% endblock %}
+{% block title %}Dashboard - Audio Transcription{% endblock %}
 
 {% block content %}
-<h2>Welcome to the Transcription App</h2>
-{% if session.get('username') %}
-    <p>You can upload and transcribe audio files now.</p>
-{% else %}
-    <p>Please <a href="{{ url_for('login_page') }}">login</a> or <a href="{{ url_for('register_page') }}">register</a> to continue.</p>
-{% endif %}
+<div class="card">
+    <h1 style="text-align: center; margin-bottom: 2rem; color: #1f2937; font-size: 2.5rem;">
+        🎵 Audio Transcription Dashboard
+    </h1>
+    
+    {% if session.get('username') %}
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <p style="font-size: 1.1rem; color: #6b7280; margin-bottom: 1rem;">
+                Transform your audio files into accurate text transcriptions
+            </p>
+        </div>
+
+        {% if error %}
+        <div class="alert alert-error">
+            <strong>Error:</strong> {{ error }}
+        </div>
+        {% endif %}
+
+        <div class="card" style="background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);">
+            <h2 style="color: #92400e; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                Upload Audio File
+            </h2>
+            
+            <form action="{{ url_for('transcribe') }}" method="post" enctype="multipart/form-data" id="transcriptionForm">
+                <div class="form-group">
+                    <label for="audioFile">Select Audio File:</label>
+                    <div class="file-upload-area" onclick="document.getElementById('audioFile').click();">
+                        <input type="file" id="audioFile" name="file" accept=".mp3,.wav,.m4a,.flac,.ogg,.aac,.wma" style="display: none;" required>
+                        <div id="fileUploadContent">
+                            <div class="feature-icon">🎵</div>
+                            <p style="font-size: 1.1rem; color: #374151; margin-bottom: 0.5rem; font-weight: 600;">
+                                Click to select or drag & drop your audio file
+                            </p>
+                            <p style="color: #6b7280; font-size: 0.9rem;">
+                                Supported formats: MP3, WAV, M4A, FLAC, OGG, AAC, WMA
+                            </p>
+                        </div>
+                        <div id="selectedFile" style="display: none;">
+                            <div class="feature-icon">📁</div>
+                            <p style="color: #059669; font-weight: 600;" id="fileName"></p>
+                            <p style="color: #6b7280; font-size: 0.9rem;">Click to change file</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <button type="submit" class="btn" id="submitBtn">
+                        🚀 Start Transcription
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="feature-grid" style="color: white;">
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3 style="margin-bottom: 0.5rem;">Fast Processing</h3>
+                <p style="font-size: 0.9rem; opacity: 0.9;">AI-powered transcription with quick turnaround times</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3 style="margin-bottom: 0.5rem;">High Accuracy</h3>
+                <p style="font-size: 0.9rem; opacity: 0.9;">Advanced speech recognition for precise results</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔒</div>
+                <h3 style="margin-bottom: 0.5rem;">Secure</h3>
+                <p style="font-size: 0.9rem; opacity: 0.9;">Your files are processed securely and not stored</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌍</div>
+                <h3 style="margin-bottom: 0.5rem;">Multi-Format</h3>
+                <p style="font-size: 0.9rem; opacity: 0.9;">Support for various audio file formats</p>
+            </div>
+        </div>
+
+        {% if transcription %}
+        <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+            <h3 style="color: #0c4a6e; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                📝 Transcription Result
+                {% if filename %}
+                    <span style="font-size: 0.9rem; color: #64748b; font-weight: normal;">
+                        ({{ filename }})
+                    </span>
+                {% endif %}
+            </h3>
+            
+            {% if duration or method or file_size or audio_quality %}
+            <div style="background: rgba(255,255,255,0.7); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: #475569;">
+                {% if duration %}
+                    <span><strong>Duration:</strong> {{ duration }}</span>
+                {% endif %}
+                {% if file_size %}
+                    <span><strong>Size:</strong> {{ file_size }}</span>
+                {% endif %}
+                {% if method %}
+                    <span><strong>Method:</strong> {{ method }}</span>
+                {% endif %}
+                {% if audio_quality %}
+                    <span><strong>Quality:</strong> {{ audio_quality }}</span>
+                {% endif %}
+            </div>
+            {% endif %}
+            
+            <div style="background: white; padding: 1.5rem; border-radius: 10px; border-left: 4px solid #0ea5e9; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div id="transcriptionContainer">
+                    <p id="transcriptionText" style="line-height: 1.6; color: #1f2937; font-size: 1.05rem; white-space: pre-wrap;">{{ transcription }}</p>
+                    <p id="summaryText" style="display: none; line-height: 1.6; color: #1f2937; font-size: 1.05rem; white-space: pre-wrap;">{{ summary }}</p>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; text-align: right;">
+                <button onclick="copyTranscription(this)" class="btn btn-secondary" style="background: #059669; margin-right: 0.5rem;">
+                    📋 Copy Text
+                </button>
+                <button onclick="toggleSummary(this)" class="btn btn-secondary" style="background: #d97706;">
+                    📑 Summarize
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+    {% else %}
+        <div style="text-align: center;">
+            <div class="feature-icon" style="font-size: 4rem; margin-bottom: 1rem;">🔒</div>
+            <h2 style="color: #1f2937; margin-bottom: 1rem;">Welcome to Audio Transcription</h2>
+            <p style="color: #6b7280; margin-bottom: 2rem; font-size: 1.1rem;">
+                Please login or register to access the transcription service
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                <a href="{{ url_for('login_page') }}" class="btn">Login</a>
+                <a href="{{ url_for('register_page') }}" class="btn btn-secondary">Register</a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const fileInput = document.getElementById('audioFile');
+        const fileUploadContent = document.getElementById('fileUploadContent');
+        const selectedFileDiv = document.getElementById('selectedFile');
+        const fileNameSpan = document.getElementById('fileName');
+        const form = document.getElementById('transcriptionForm');
+        const submitBtn = document.getElementById('submitBtn');
+
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                fileNameSpan.textContent = file.name;
+                fileUploadContent.style.display = 'none';
+                selectedFileDiv.style.display = 'block';
+            } else {
+                fileUploadContent.style.display = 'block';
+                selectedFileDiv.style.display = 'none';
+            }
+        });
+
+        form.addEventListener('submit', function(e) {
+            if (fileInput.files.length === 0) {
+                e.preventDefault();
+                alert('Please select an audio file first.');
+                return;
+            }
+
+            // Show loading state
+            submitBtn.innerHTML = '⏳ Processing...';
+            submitBtn.disabled = true;
+            
+            // Create progress indicator
+            const progressDiv = document.createElement('div');
+            progressDiv.innerHTML = `
+                <div style="text-align: center; margin-top: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.2);">
+                    <p style="color: #1e40af; font-weight: 600; margin-bottom: 0.5rem;">🔄 Transcribing your audio file...</p>
+                    <p style="color: #64748b; font-size: 0.9rem;">This may take a few moments depending on file size</p>
+                </div>
+            `;
+            form.appendChild(progressDiv);
+        });
+    });
+
+    function copyTranscription(btn) {
+        const isSummaryVisible = document.getElementById('summaryText').style.display !== 'none';
+        const textToCopy = isSummaryVisible ? 
+            document.getElementById('summaryText').textContent : 
+            document.getElementById('transcriptionText').textContent;
+        
+        navigator.clipboard.writeText(textToCopy).then(function() {
+            try {
+                // Change button text temporarily
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.style.background = '#059669';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.background = '#059669';
+                }, 2000);
+            } catch (err) {
+                console.error('Error during UI update:', err);
+            }
+        }).catch(function(err) {
+            console.error('Could not copy text: ', err);
+            alert('Failed to copy text to clipboard');
+        });
+    }
+
+    function toggleSummary(btn) {
+        const transcriptionText = document.getElementById('transcriptionText');
+        const summaryText = document.getElementById('summaryText');
+        
+        if (summaryText.style.display === 'none') {
+            transcriptionText.style.display = 'none';
+            summaryText.style.display = 'block';
+            btn.innerHTML = '📄 Show Full Text';
+        } else {
+            transcriptionText.style.display = 'block';
+            summaryText.style.display = 'none';
+            btn.innerHTML = '📑 Summarize';
+        }
+    }
+</script>
 {% endblock %}
