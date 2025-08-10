@@ -11,3 +11,4 @@ jiwer
 sentencepiece
 transformers
 flask
+moviepy

@@ -19,6 +19,7 @@ dependencies = [
     "transformers",
     "flask",
     "openai-whisper>=20250625",
+    "moviepy>=2.2.1",
 ]
 
 [tool.uv]

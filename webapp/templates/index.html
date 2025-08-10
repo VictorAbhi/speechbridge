@@ -15,18 +15,13 @@
             </p>
         </div>
 
-        {% if error %}
-        <div class="alert alert-error">
-            <strong>Error:</strong> {{ error }}
-        </div>
-        {% endif %}
-
-        <div class="card" style="background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);">
+        <!-- Upload Form -->
+        <div id="uploadForm" class="card" style="background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);">
             <h2 style="color: #92400e; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
                 Upload Audio File
             </h2>
             
-            <form action="{{ url_for('transcribe') }}" method="post" enctype="multipart/form-data" id="transcriptionForm">
+            <form id="transcriptionForm" enctype="multipart/form-data">
                 <div class="form-group">
                     <label for="audioFile">Select Audio File:</label>
                     <div class="file-upload-area" onclick="document.getElementById('audioFile').click();">
@@ -56,7 +51,78 @@
             </form>
         </div>
 
-        <div class="feature-grid" style="color: white;">
+        <!-- Live Transcription Area -->
+        <div id="liveTranscriptionContainer" style="display: none; margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 15px; border-left: 4px solid #22c55e;">
+            <h3 style="color: #166534; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                📝 Live Transcription
+                <span style="font-size: 0.8rem; color: #64748b; font-weight: normal;">(Real-time preview)</span>
+            </h3>
+            
+            <div style="background: white; padding: 1.5rem; border-radius: 10px; min-height: 120px; max-height: 300px; overflow-y: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <p id="liveTranscriptionText" style="line-height: 1.6; color: #1f2937; font-size: 1rem; margin: 0; white-space: pre-wrap;">
+                    <span style="color: #64748b; font-style: italic;">Transcription will appear here as it's processed...</span>
+                </p>
+                <span id="typingIndicator" style="display: none; color: #3b82f6; animation: pulse 1.5s infinite;">●●●</span>
+            </div>
+        </div>
+        <div id="progressContainer" style="display: none; margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 15px; border: 1px solid rgba(59, 130, 246, 0.2);">
+            <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                <div class="stage pending" id="stage-upload">📁 Upload</div>
+                <div class="stage pending" id="stage-analyze">🔍 Analyze</div>
+                <div class="stage pending" id="stage-process">⚙️ Process</div>
+                <div class="stage pending" id="stage-transcribe">📝 Transcribe</div>
+                <div class="stage pending" id="stage-summarize">📑 Summarize</div>
+            </div>
+            
+            <div style="text-align: center; color: #1e40af; font-weight: 600; margin-bottom: 0.5rem;" id="progressText">Preparing upload...</div>
+            <div style="width: 100%; height: 20px; background: #e5e7eb; border-radius: 10px; overflow: hidden; margin: 1rem 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+                <div id="progressFill" style="height: 100%; background: linear-gradient(90deg, #3b82f6, #1d4ed8, #3b82f6); background-size: 200% 100%; animation: shimmer 2s infinite; border-radius: 10px; width: 0%; transition: width 0.5s ease;"></div>
+            </div>
+            <div style="color: #64748b; font-size: 0.9rem; text-align: center;" id="progressDetails">Please wait while we process your audio file</div>
+            <div style="text-align: center; margin-top: 1rem;">
+                <span style="font-weight: 600; color: #1e40af;" id="progressPercentage">0%</span>
+            </div>
+        </div>
+
+        <!-- Results Container -->
+        <div id="resultContainer" style="display: none; margin-top: 2rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 15px; padding: 1.5rem;">
+            <h3 style="color: #0c4a6e; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                📝 Transcription Result
+                <span style="font-size: 0.9rem; color: #64748b; font-weight: normal;" id="resultFilename"></span>
+            </h3>
+            
+            <div id="resultInfo" style="background: rgba(255,255,255,0.7); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: #475569;"></div>
+            
+            <div style="background: white; padding: 1.5rem; border-radius: 10px; border-left: 4px solid #0ea5e9; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div id="transcriptionContainer">
+                    <p id="transcriptionText" style="line-height: 1.6; color: #1f2937; font-size: 1.05rem; white-space: pre-wrap;"></p>
+                    <p id="summaryText" style="display: none; line-height: 1.6; color: #1f2937; font-size: 1.05rem; white-space: pre-wrap;"></p>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; text-align: right;">
+                <button onclick="copyTranscription()" class="btn btn-secondary" style="background: #059669; margin-right: 0.5rem;">
+                    📋 Copy Text
+                </button>
+                <button onclick="toggleSummary()" class="btn btn-secondary" style="background: #d97706; margin-right: 0.5rem;">
+                    📑 Show Summary
+                </button>
+                <button onclick="resetForm()" class="btn btn-secondary" style="background: #6366f1;">
+                    🔄 New File
+                </button>
+            </div>
+        </div>
+
+        <!-- Error Container -->
+        <div id="errorContainer" style="display: none; margin-top: 2rem; padding: 1.5rem; background: #fef2f2; border-radius: 15px; border-left: 4px solid #ef4444; color: #dc2626;">
+            <strong>Error:</strong> <span id="errorText"></span>
+            <div style="margin-top: 1rem;">
+                <button onclick="resetForm()" class="btn" style="background: #6366f1;">
+                    🔄 Try Again
+                </button>
+            </div>
+        </div>
+
+        <div class="feature-grid" style="color: white; margin-top: 2rem;">
             <div class="feature-card">
                 <div class="feature-icon">⚡</div>
                 <h3 style="margin-bottom: 0.5rem;">Fast Processing</h3>
@@ -79,51 +145,6 @@
             </div>
         </div>
 
-        {% if transcription %}
-        <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
-            <h3 style="color: #0c4a6e; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-                📝 Transcription Result
-                {% if filename %}
-                    <span style="font-size: 0.9rem; color: #64748b; font-weight: normal;">
-                        ({{ filename }})
-                    </span>
-                {% endif %}
-            </h3>
-            
-            {% if duration or method or file_size or audio_quality %}
-            <div style="background: rgba(255,255,255,0.7); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: #475569;">
-                {% if duration %}
-                    <span><strong>Duration:</strong> {{ duration }}</span>
-                {% endif %}
-                {% if file_size %}
-                    <span><strong>Size:</strong> {{ file_size }}</span>
-                {% endif %}
-                {% if method %}
-                    <span><strong>Method:</strong> {{ method }}</span>
-                {% endif %}
-                {% if audio_quality %}
-                    <span><strong>Quality:</strong> {{ audio_quality }}</span>
-                {% endif %}
-            </div>
-            {% endif %}
-            
-            <div style="background: white; padding: 1.5rem; border-radius: 10px; border-left: 4px solid #0ea5e9; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                <div id="transcriptionContainer">
-                    <p id="transcriptionText" style="line-height: 1.6; color: #1f2937; font-size: 1.05rem; white-space: pre-wrap;">{{ transcription }}</p>
-                    <p id="summaryText" style="display: none; line-height: 1.6; color: #1f2937; font-size: 1.05rem; white-space: pre-wrap;">{{ summary }}</p>
-                </div>
-            </div>
-            <div style="margin-top: 1rem; text-align: right;">
-                <button onclick="copyTranscription(this)" class="btn btn-secondary" style="background: #059669; margin-right: 0.5rem;">
-                    📋 Copy Text
-                </button>
-                <button onclick="toggleSummary(this)" class="btn btn-secondary" style="background: #d97706;">
-                    📑 Summarize
-                </button>
-            </div>
-        </div>
-        {% endif %}
-
     {% else %}
         <div style="text-align: center;">
             <div class="feature-icon" style="font-size: 4rem; margin-bottom: 1rem;">🔒</div>
@@ -139,14 +160,52 @@
     {% endif %}
 </div>
 
+<style>
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.stage {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.stage.active {
+    background: #3b82f6;
+    color: white;
+    transform: scale(1.05);
+}
+
+.stage.completed {
+    background: #10b981;
+    color: white;
+}
+
+.stage.pending {
+    background: #e5e7eb;
+    color: #6b7280;
+}
+</style>
+
 <script>
+    let currentEventSource = null;
+    let isShowingSummary = false;
+
     document.addEventListener('DOMContentLoaded', function() {
         const fileInput = document.getElementById('audioFile');
         const fileUploadContent = document.getElementById('fileUploadContent');
         const selectedFileDiv = document.getElementById('selectedFile');
         const fileNameSpan = document.getElementById('fileName');
         const form = document.getElementById('transcriptionForm');
-        const submitBtn = document.getElementById('submitBtn');
 
         fileInput.addEventListener('change', function(e) {
             if (e.target.files.length > 0) {
@@ -161,65 +220,274 @@
         });
 
         form.addEventListener('submit', function(e) {
+            e.preventDefault();
             if (fileInput.files.length === 0) {
-                e.preventDefault();
                 alert('Please select an audio file first.');
                 return;
             }
+            startTranscription();
+        });
 
-            // Show loading state
-            submitBtn.innerHTML = '⏳ Processing...';
-            submitBtn.disabled = true;
+        // Drag and drop functionality
+        const uploadArea = document.querySelector('.file-upload-area');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#3b82f6';
+            uploadArea.style.background = '#eff6ff';
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#e5e7eb';
+            uploadArea.style.background = '#f9fafb';
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#e5e7eb';
+            uploadArea.style.background = '#f9fafb';
             
-            // Create progress indicator
-            const progressDiv = document.createElement('div');
-            progressDiv.innerHTML = `
-                <div style="text-align: center; margin-top: 1rem; padding: 1rem; background: rgba(59, 130, 246, 0.1); border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.2);">
-                    <p style="color: #1e40af; font-weight: 600; margin-bottom: 0.5rem;">🔄 Transcribing your audio file...</p>
-                    <p style="color: #64748b; font-size: 0.9rem;">This may take a few moments depending on file size</p>
-                </div>
-            `;
-            form.appendChild(progressDiv);
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                const allowedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/flac', 'audio/ogg', 'audio/aac', 'audio/x-ms-wma'];
+                if (allowedTypes.some(type => file.type.includes(type.split('/')[1]) || file.name.toLowerCase().includes(type.split('/')[1]))) {
+                    fileInput.files = files;
+                    fileInput.dispatchEvent(new Event('change'));
+                } else {
+                    alert('Please select a valid audio file.');
+                }
+            }
         });
     });
 
-    function copyTranscription(btn) {
-        const isSummaryVisible = document.getElementById('summaryText').style.display !== 'none';
-        const textToCopy = isSummaryVisible ? 
+    function startTranscription() {
+        const fileInput = document.getElementById('audioFile');
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+
+        // Show progress container
+        showProgress();
+
+        // Upload file and start transcription
+        fetch('/transcribe', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showError(data.error);
+            } else {
+                // Start listening for progress updates
+                listenForProgress(data.session_id);
+            }
+        })
+        .catch(error => {
+            showError('Upload failed: ' + error.message);
+        });
+    }
+
+    function listenForProgress(sessionId) {
+        // Close existing connection if any
+        if (currentEventSource) {
+            currentEventSource.close();
+        }
+
+        currentEventSource = new EventSource(`/progress/${sessionId}`);
+        
+        currentEventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            updateProgress(data);
+        };
+
+        currentEventSource.onerror = function(event) {
+            console.error('EventSource failed:', event);
+            currentEventSource.close();
+            showError('Connection lost. Please try again.');
+        };
+    }
+
+    function updateProgress(data) {
+        const { stage, progress, message, details, result, partial_text } = data;
+
+        // Update progress bar
+        document.getElementById('progressFill').style.width = progress + '%';
+        
+        // Always remove percentage from main progress text message
+        let displayMessage = message.replace(/\s*\(\d+%\)/, '');
+        document.getElementById('progressText').textContent = displayMessage;
+        document.getElementById('progressDetails').textContent = details || '';
+
+        // Always show percentage in the bottom segment
+        document.getElementById('progressPercentage').textContent = progress + '%';
+
+        // Update live transcription if available
+        if (partial_text) {
+            showLiveTranscription(partial_text);
+        }
+
+        // Update stage indicators
+        const stages = ['upload', 'analyze', 'process', 'transcribe', 'summarize'];
+        stages.forEach(stageName => {
+            const stageElement = document.getElementById(`stage-${stageName}`);
+            stageElement.classList.remove('active', 'completed', 'pending');
+            
+            if (stageName === stage) {
+                stageElement.classList.add('active');
+            } else if (stages.indexOf(stageName) < stages.indexOf(stage)) {
+                stageElement.classList.add('completed');
+            } else {
+                stageElement.classList.add('pending');
+            }
+        });
+
+        // Handle completion
+        if (stage === 'complete' && result) {
+            setTimeout(() => {
+                showResult(result);
+                if (currentEventSource) {
+                    currentEventSource.close();
+                }
+            }, 1000);
+        } else if (stage === 'error') {
+            showError(details || message);
+            if (currentEventSource) {
+                currentEventSource.close();
+            }
+        }
+    }
+
+    function showLiveTranscription(text) {
+        const container = document.getElementById('liveTranscriptionContainer');
+        const textElement = document.getElementById('liveTranscriptionText');
+        const typingIndicator = document.getElementById('typingIndicator');
+        
+        // Show container if hidden
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+        }
+        
+        // Update text with typing effect
+        textElement.innerHTML = text;
+        
+        // Show typing indicator briefly
+        typingIndicator.style.display = 'inline';
+        setTimeout(() => {
+            typingIndicator.style.display = 'none';
+        }, 1000);
+        
+        // Auto-scroll to bottom
+        textElement.scrollTop = textElement.scrollHeight;
+    }
+
+    function showProgress() {
+        document.getElementById('uploadForm').style.display = 'none';
+        document.getElementById('progressContainer').style.display = 'block';
+        document.getElementById('liveTranscriptionContainer').style.display = 'none';
+        document.getElementById('resultContainer').style.display = 'none';
+        document.getElementById('errorContainer').style.display = 'none';
+    }
+
+    function showResult(result) {
+        document.getElementById('progressContainer').style.display = 'none';
+        document.getElementById('liveTranscriptionContainer').style.display = 'none';
+        document.getElementById('resultContainer').style.display = 'block';
+        document.getElementById('errorContainer').style.display = 'none';
+
+        // Populate result data
+        document.getElementById('resultFilename').textContent = `(${result.filename})`;
+        document.getElementById('transcriptionText').textContent = result.transcription;
+        document.getElementById('summaryText').textContent = result.summary;
+
+        // Populate info
+        const infoHtml = `
+            <span><strong>Duration:</strong> ${result.duration}</span>
+            <span><strong>Size:</strong> ${result.file_size}</span>
+            <span><strong>Method:</strong> ${result.method}</span>
+            <span><strong>Quality:</strong> ${result.audio_quality}</span>
+        `;
+        document.getElementById('resultInfo').innerHTML = infoHtml;
+    }
+
+    function showError(message) {
+        document.getElementById('uploadForm').style.display = 'none';
+        document.getElementById('progressContainer').style.display = 'none';
+        document.getElementById('liveTranscriptionContainer').style.display = 'none';
+        document.getElementById('resultContainer').style.display = 'none';
+        document.getElementById('errorContainer').style.display = 'block';
+        document.getElementById('errorText').textContent = message;
+    }
+
+    function resetForm() {
+        // Close event source if active
+        if (currentEventSource) {
+            currentEventSource.close();
+            currentEventSource = null;
+        }
+
+        // Reset form
+        document.getElementById('audioFile').value = '';
+        document.getElementById('fileUploadContent').style.display = 'block';
+        document.getElementById('selectedFile').style.display = 'none';
+        
+        // Show upload form
+        document.getElementById('uploadForm').style.display = 'block';
+        document.getElementById('progressContainer').style.display = 'none';
+        document.getElementById('liveTranscriptionContainer').style.display = 'none';
+        document.getElementById('resultContainer').style.display = 'none';
+        document.getElementById('errorContainer').style.display = 'none';
+        
+        // Reset progress
+        document.getElementById('progressFill').style.width = '0%';
+        document.getElementById('progressPercentage').textContent = '0%';
+        document.getElementById('progressPercentage').style.display = 'inline';
+        
+        // Reset stages
+        const stages = ['upload', 'analyze', 'process', 'transcribe', 'summarize'];
+        stages.forEach(stageName => {
+            const stageElement = document.getElementById(`stage-${stageName}`);
+            stageElement.classList.remove('active', 'completed');
+            stageElement.classList.add('pending');
+        });
+
+        isShowingSummary = false;
+    }
+
+    function copyTranscription() {
+        const textToCopy = isShowingSummary ? 
             document.getElementById('summaryText').textContent : 
             document.getElementById('transcriptionText').textContent;
         
         navigator.clipboard.writeText(textToCopy).then(function() {
-            try {
-                // Change button text temporarily
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '✅ Copied!';
-                btn.style.background = '#059669';
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.style.background = '#059669';
-                }, 2000);
-            } catch (err) {
-                console.error('Error during UI update:', err);
-            }
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '✅ Copied!';
+            setTimeout(() => {
+                btn.innerHTML = originalText;
+            }, 2000);
         }).catch(function(err) {
             console.error('Could not copy text: ', err);
             alert('Failed to copy text to clipboard');
         });
     }
 
-    function toggleSummary(btn) {
+    function toggleSummary() {
         const transcriptionText = document.getElementById('transcriptionText');
         const summaryText = document.getElementById('summaryText');
+        const btn = event.target;
         
         if (summaryText.style.display === 'none') {
             transcriptionText.style.display = 'none';
             summaryText.style.display = 'block';
             btn.innerHTML = '📄 Show Full Text';
+            isShowingSummary = true;
         } else {
             transcriptionText.style.display = 'block';
             summaryText.style.display = 'none';
-            btn.innerHTML = '📑 Summarize';
+            btn.innerHTML = '📑 Show Summary';
+            isShowingSummary = false;
         }
     }
 </script>

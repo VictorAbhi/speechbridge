@@ -21,9 +21,9 @@ class TranscriptionService:
             self.model = AutoModelForSpeechSeq2Seq.from_pretrained(model_name)
             self.model.to(self.device)
             self.model_loaded = True
-            print(f"✅ Model loaded successfully on {self.device}")
+            print(f"Model loaded successfully on {self.device}")
         except Exception as e:
-            print(f"❌ Error loading model: {e}")
+            print(f"Error loading model: {e}")
             # Fallback to pipeline approach
             from transformers import pipeline
             self.pipe = pipeline("automatic-speech-recognition", model=model_name, device=0 if torch.cuda.is_available() else -1)
@@ -91,9 +91,9 @@ class TranscriptionService:
                 transcription = transcription.strip()
                 if transcription and len(transcription) > 1:  # Avoid single character results
                     full_transcript += transcription + " "
-                    print(f"✅ Chunk {i+1}/{len(chunks)}: {transcription[:50]}...")
+                    print(f"Chunk {i+1}/{len(chunks)}: {transcription[:50]}...")
                 else:
-                    print(f"⚠️ Chunk {i+1}/{len(chunks)}: No meaningful speech detected")
+                    print(f"Chunk {i+1}/{len(chunks)}: No meaningful speech detected")
                     
             except Exception as e:
                 print(f"❌ Error processing chunk {i+1}: {e}")
