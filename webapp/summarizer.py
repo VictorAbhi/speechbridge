@@ -1,63 +1,34 @@
 from transformers import pipeline, BartForConditionalGeneration, BartTokenizer
-import os
 import logging
 
 class SummarizerService:
-    def __init__(self, model_name: str = "facebook/bart-large-cnn", cache_dir: str = "./model_cache", device: int = -1):
+    def __init__(self, model_name: str = "facebook/bart-large-cnn", device: int = -1):
         """
-        Initialize the summarizer pipeline by loading model and tokenizer from a local cache directory.
+        Initialize the summarizer pipeline by loading model and tokenizer from the default Hugging Face cache.
 
         Args:
             model_name (str): Hugging Face model name for summarization (e.g., facebook/bart-large-cnn).
-            cache_dir (str): Directory containing the cached model and tokenizer.
             device (int): Device index (-1 for CPU, 0 or higher for GPU).
         """
-        # Convert cache_dir to absolute path
-        cache_dir = os.path.abspath(cache_dir)
-        
         # Configure logging
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
-        self.logger.info(f"Using cache directory: {cache_dir}")
-        
-        # Define model path
-        model_path = os.path.join(cache_dir, model_name.replace("/", "--"))
-        required_files = ['pytorch_model.bin', 'config.json', 'vocab.json', 'merges.txt', 'tokenizer_config.json']
-        
-        # Check if model directory exists
-        self.logger.info(f"Checking model directory: {model_path}")
-        if not os.path.exists(model_path):
-            self.logger.error(f"Model directory {model_path} does not exist.")
-            raise FileNotFoundError(
-                f"Model directory {model_path} not found. Ensure the directory exists and contains all required files. "
-                "You can manually download the model and tokenizer from https://huggingface.co/facebook/bart-large-cnn/tree/main "
-                "and place them in {model_path}."
-            )
-        
-        # Verify required files
-        missing_files = [f for f in required_files if not os.path.exists(os.path.join(model_path, f))]
-        if missing_files:
-            self.logger.error(f"Missing required files in {model_path}: {', '.join(missing_files)}")
-            raise FileNotFoundError(
-                f"Missing files in {model_path}: {', '.join(missing_files)}. "
-                "Ensure all model and tokenizer files are present. You can manually download them from "
-                "https://huggingface.co/facebook/bart-large-cnn/tree/main and place them in {model_path}."
-            )
-        
+        self.logger.info(f"Initializing summarizer with model: {model_name}")
+
         try:
             # Load tokenizer
-            self.logger.info(f"Loading tokenizer for {model_name} from {model_path}")
+            self.logger.info(f"Loading tokenizer for {model_name} from default cache")
             self.tokenizer = BartTokenizer.from_pretrained(
-                model_path,
-                local_files_only=True
+                model_name,
+                local_files_only=False  # Allow initial download if not cached
             )
             self.logger.info("Tokenizer loaded successfully")
 
             # Load model
-            self.logger.info(f"Loading model {model_name} from {model_path}")
+            self.logger.info(f"Loading model {model_name} from default cache")
             self.model = BartForConditionalGeneration.from_pretrained(
-                model_path,
-                local_files_only=True
+                model_name,
+                local_files_only=False  # Allow initial download if not cached
             )
             self.logger.info("Model loaded successfully")
 
@@ -70,12 +41,21 @@ class SummarizerService:
             )
             self.logger.info(f"Successfully initialized summarization pipeline for {model_name}")
 
+            # Update to local_files_only for subsequent runs
+            self.tokenizer = BartTokenizer.from_pretrained(model_name, local_files_only=True)
+            self.model = BartForConditionalGeneration.from_pretrained(model_name, local_files_only=True)
+            self.summarizer = pipeline(
+                "summarization",
+                model=self.model,
+                tokenizer=self.tokenizer,
+                device=device
+            )
+
         except Exception as e:
             self.logger.error(f"Failed to load model or tokenizer: {str(e)}")
             raise RuntimeError(
                 f"Model or tokenizer initialization failed: {str(e)}. "
-                f"Ensure all files are in {model_path} and are not corrupted. "
-                "Check https://huggingface.co/facebook/bart-large-cnn/tree/main for required files."
+                "Ensure internet connection for initial download or check cache at ~/.cache/huggingface/transformers."
             )
 
     def summarize(self, text: str, max_length: int = 130, min_length: int = 30, do_sample: bool = False) -> str:

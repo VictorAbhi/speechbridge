@@ -18,7 +18,7 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # Initialize services
 auth_handler = AuthHandler()
 transcription_service = TranscriptionService()
-# summarizer = SummarizerService()
+summarizer = SummarizerService()
 
 # Global dictionary to store progress for each session
 progress_data = {}
@@ -184,7 +184,7 @@ def process_transcription_async(filepath, filename, session_id):
         # Stage 4: Summarization
         update_progress(session_id, 'summarize', 90, 'Generating summary...', 'Creating intelligent summary of content')
         
-        # summary = summarizer.summarize(transcription) if transcription else ""
+        summary = summarizer.summarize(transcription) if transcription else ""
         
         # Check if transcription is meaningful
         if not transcription or transcription.lower() in ["no speech detected.", "no clear speech detected in the audio file.", ""]:
@@ -194,7 +194,7 @@ def process_transcription_async(filepath, filename, session_id):
         # Stage 5: Complete
         result = {
             'transcription': transcription,
-            # 'summary': summary,
+            'summary': summary,
             'filename': filename,
             'duration': duration_str,
             'method': method,
