@@ -3,6 +3,7 @@ from auth import AuthHandler
 from summarizer import SummarizerService
 from transcription import TranscriptionService
 from functools import wraps
+from langdetect import detect
 import os
 from werkzeug.utils import secure_filename
 import json
@@ -123,7 +124,7 @@ def simulate_chunked_transcription(transcribe_func, filepath, session_id, start_
     
     return transcription_result['text']
 
-def process_transcription_async(filepath, filename, session_id):
+def process_transcription_async(filepath, filename, session_id, language='en'):
     """Process transcription in background thread with progress updates"""
     try:
         # Stage 1: Analyze audio
@@ -155,32 +156,54 @@ def process_transcription_async(filepath, filename, session_id):
         
         try:
             if file_size < max_simple_size and audio_info['duration'] < max_simple_duration:
-                # For small files, simulate chunked progress
-                transcription = transcribe_with_progress(transcription_service.transcribe_simple, filepath, session_id, 70, 85)
+                transcription = transcribe_with_progress(
+                    lambda fp: transcription_service.transcribe_simple(fp, language=language),
+                    filepath, session_id, 70, 85
+                )
                 method = "Direct processing (small file)"
             else:
-                # Use actual chunked transcription
-                transcription = transcribe_with_progress(transcription_service.transcribe, filepath, session_id, 70, 85)
+                transcription = transcribe_with_progress(
+                    lambda fp: transcription_service.transcribe(fp, language=language),
+                    filepath, session_id, 70, 85
+                )
                 method = "Chunked processing"
         except Exception as transcribe_error:
-            # Fallback method
             try:
                 if file_size < max_simple_size and audio_info['duration'] < max_simple_duration:
-                    transcription = transcribe_with_progress(transcription_service.transcribe, filepath, session_id, 70, 85)
+                    transcription = transcribe_with_progress(
+                        lambda fp: transcription_service.transcribe(fp, language=language),
+                        filepath, session_id, 70, 85
+                    )
                     method = "Chunked processing (fallback)"
                 else:
-                    transcription = transcribe_with_progress(transcription_service.transcribe_simple, filepath, session_id, 70, 85)
+                    transcription = transcribe_with_progress(
+                        lambda fp: transcription_service.transcribe_simple(fp, language=language),
+                        filepath, session_id, 70, 85
+                    )
                     method = "Direct processing (fallback)"
             except Exception as fallback_error:
                 try:
                     processed_path = transcription_service.preprocess_audio(filepath)
-                    transcription = transcribe_with_progress(transcription_service.transcribe, processed_path, session_id, 70, 85)
+                    transcription = transcribe_with_progress(
+                        lambda fp: transcription_service.transcribe(fp, language=language),
+                        processed_path, session_id, 70, 85
+                    )
                     method = "Preprocessed + chunked"
                     if os.path.exists(processed_path):
                         os.remove(processed_path)
                 except Exception:
                     raise transcribe_error
-        
+        try:
+            detected_lang = detect(transcription)
+            if language == "ne" and detected_lang == "en":
+                update_progress(session_id, 'error', 0, 'Error', 'You selected Nepali, but the audio appears to be in English. Please select the correct language.')
+                return
+            elif language == "en" and detected_lang == "ne":
+                update_progress(session_id, 'error', 0, 'Error', 'You selected English, but the audio appears to be in Nepali. Please select the correct language.')
+                return
+        except Exception:
+            # If detection fails, ignore and proceed
+            pass
         # Stage 4: Summarization
         update_progress(session_id, 'summarize', 90, 'Generating summary...', 'Creating intelligent summary of content')
         
@@ -292,6 +315,9 @@ def transcribe():
     if file.filename == '':
         return jsonify({"error": "No file selected"}), 400
 
+    # Get language from form data, default to 'en'
+    language = request.form.get("language", "en")
+
     # Check file extension
     allowed_extensions = {'.mp3', '.wav', '.m4a', '.flac', '.ogg', '.aac', '.wma'}
     file_ext = os.path.splitext(file.filename)[1].lower()
@@ -314,7 +340,7 @@ def transcribe():
         # Start background processing
         thread = threading.Thread(
             target=process_transcription_async,
-            args=(filepath, filename, session_id)
+            args=(filepath, filename, session_id, language)
         )
         thread.start()
         

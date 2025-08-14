@@ -62,7 +62,7 @@ class TranscriptionService:
         except Exception as e:
             raise Exception(f"Error loading audio chunks: {str(e)}")
 
-    def transcribe_chunks(self, chunks, sample_rate=16000):
+    def transcribe_chunks(self, chunks, sample_rate=16000, language='en'):
         """
         Transcribe audio chunks using the manual approach from your notebook
         """
@@ -82,7 +82,10 @@ class TranscriptionService:
                 
                 # Generate transcription
                 with torch.no_grad():  # Save memory
-                    predicted_ids = self.model.generate(inputs)
+                    predicted_ids = self.model.generate(
+                        inputs,
+                        forced_decoder_ids=self.processor.get_decoder_prompt_ids(language=language, task="transcribe")
+                    )
                 
                 # Decode the result
                 transcription = self.processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
@@ -102,7 +105,7 @@ class TranscriptionService:
         result = full_transcript.strip()
         return result if result else "No clear speech detected in the audio file."
 
-    def transcribe(self, file_path, chunk_size_s=30):
+    def transcribe(self, file_path, chunk_size_s=30, language='en'):
         """
         Main transcription method using the chunking approach from your notebook
         """
@@ -123,13 +126,15 @@ class TranscriptionService:
         except Exception as e:
             raise Exception(f"Transcription error: {str(e)}")
 
-    def transcribe_simple(self, file_path):
+    def transcribe_simple(self, file_path, language='en'):
         """
         Simple transcription without chunking (fallback method)
         """
         try:
             if hasattr(self, 'pipe'):
-                result = self.pipe(file_path)
+                result = self.pipe(file_path, generate_kwargs={
+                    "forced_decoder_ids": self.processor.get_decoder_prompt_ids(language=language, task="transcribe")
+                })
                 return result['text'].strip() if result and 'text' in result else "No speech detected."
             else:
                 raise Exception("No transcription method available")
