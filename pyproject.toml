@@ -20,6 +20,7 @@ dependencies = [
     "flask",
     "openai-whisper>=20250625",
     "moviepy>=2.2.1",
+    "langdetect>=1.0.9",
 ]
 
 [tool.uv]

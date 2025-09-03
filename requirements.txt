@@ -1,4 +1,3 @@
-openai-whisper
 numpy
 torch
 ffmpeg-python
@@ -12,3 +11,4 @@ sentencepiece
 transformers
 flask
 moviepy
+langdetect
