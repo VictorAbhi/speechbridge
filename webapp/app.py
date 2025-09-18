@@ -3,13 +3,16 @@ from auth import AuthHandler
 from summarizer import SummarizerService
 from transcription import TranscriptionService
 from functools import wraps
-from langdetect import detect
+from langdetect import detect, DetectorFactory
 import os
 from werkzeug.utils import secure_filename
 import json
 import time
 import uuid
 import threading
+
+# Ensure consistent language detection
+DetectorFactory.seed = 0
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "your-secret-key-change-this"  # change to a secure random key
@@ -45,6 +48,48 @@ def update_progress(session_id, stage, progress, message, details="", partial_te
         'partial_text': partial_text,
         'timestamp': time.time()
     }
+def detect_language_from_text(text):
+    try:
+        if not text or len(text.strip()) < 10:
+            return 'unknown'
+        
+        detected = detect(text)
+        # Map langdetect codes to our supported languages
+        if detected == 'en':
+            return 'en'
+        elif detected == 'ne':
+            return 'ne'
+        else:
+            # For any other language, we'll try English as fallback
+            return 'unknown'
+    except:
+        return 'unknown'
+
+def convert_mp4_to_mp3(input_path):
+
+    try:
+        import subprocess
+        
+        # Create output path
+        base_name = os.path.splitext(input_path)[0]
+        output_path = base_name + "_converted.mp3"
+        
+        # Use ffmpeg to convert
+        cmd = [
+            'ffmpeg', '-i', input_path,
+            '-vn',  # No video
+            '-acodec', 'libmp3lame',  # MP3 codec
+            '-ab', '192k',  # Bitrate
+            '-ar', '16000',  # Sample rate for Whisper
+            '-y',  # Overwrite output
+            output_path
+        ]
+        
+        subprocess.run(cmd, check=True, capture_output=True)
+        return output_path
+        
+    except Exception as e:
+        raise Exception(f"MP4 to MP3 conversion failed: {str(e)}")
 
 def transcribe_with_progress(transcribe_func, filepath, session_id, start_progress, end_progress):
     """Wrapper function to provide progress updates during transcription"""
@@ -129,6 +174,21 @@ def process_transcription_async(filepath, filename, session_id, language='en'):
     try:
         # Stage 1: Analyze audio
         update_progress(session_id, 'analyze', 25, 'Analyzing audio...', 'Checking file format and audio quality')
+
+                # Check if file is MP4 and convert to MP3
+        file_ext = os.path.splitext(filepath)[1].lower()
+        original_filepath = filepath
+        
+        if file_ext == '.mp4':
+            update_progress(session_id, 'process', 25, 'Converting MP4 to MP3...', 'Converting video to audio format')
+            try:
+                filepath = convert_mp4_to_mp3(filepath)
+                update_progress(session_id, 'process', 35, 'Conversion complete', 'Audio extracted from video')
+            except Exception as e:
+                update_progress(session_id, 'error', 0, 'Error', f'MP4 conversion failed: {str(e)}')
+                return
+        else:
+            update_progress(session_id, 'process', 35, 'Processing audio...', 'Audio file ready for transcription')
         
         audio_info = transcription_service.get_audio_info(filepath)
         duration_str = f"{audio_info['duration']:.1f}s"
