@@ -5,9 +5,7 @@ An end-to-end pipeline for automatic speech recognition (ASR) to Neplali transla
 ## Features
 
 ✅ Transcribe English audio with Whisper  
-✅ Clean and format transcripts  
-✅ Fine-tune a summarization model (BART/T5/Pegasus)  
-✅ Translation to Nepali 
+✅ Fine-tune a whisper especially for nepali transcription
 ✅ Generate concise summaries  of both english and nepali both
 
 ## Installation
