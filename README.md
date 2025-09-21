@@ -1,6 +1,6 @@
 # speechbridge
 
-An end-to-end pipeline for automatic speech recognition (ASR) to Neplali translation and summarization (both nepali and language probably) of English audio files.
+An end-to-end pipeline for automatic speech recognition (ASR) to summarization for Nepali and English Language.
 
 ## Features
 
