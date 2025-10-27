@@ -299,8 +299,10 @@
 
     function startTranscription() {
         const fileInput = document.getElementById('audioFile');
+        const languageSelect = document.getElementById('language');
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
+        formData.append('language', languageSelect.value);
 
         // Show progress container
         showProgress();
