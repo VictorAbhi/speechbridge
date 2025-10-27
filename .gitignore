@@ -5,3 +5,4 @@ model_cache/-e
 # Environment files
 *.env
 *.env.*
+data/
