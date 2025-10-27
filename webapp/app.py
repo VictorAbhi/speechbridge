@@ -3,16 +3,12 @@ from auth import AuthHandler
 from summarizer import SummarizerService
 from transcription import TranscriptionService
 from functools import wraps
-from langdetect import detect, DetectorFactory
 import os
 from werkzeug.utils import secure_filename
 import json
 import time
 import uuid
 import threading
-
-# Ensure consistent language detection
-DetectorFactory.seed = 0
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "your-secret-key-change-this"  # change to a secure random key
@@ -48,48 +44,6 @@ def update_progress(session_id, stage, progress, message, details="", partial_te
         'partial_text': partial_text,
         'timestamp': time.time()
     }
-def detect_language_from_text(text):
-    try:
-        if not text or len(text.strip()) < 10:
-            return 'unknown'
-        
-        detected = detect(text)
-        # Map langdetect codes to our supported languages
-        if detected == 'en':
-            return 'en'
-        elif detected == 'ne':
-            return 'ne'
-        else:
-            # For any other language, we'll try English as fallback
-            return 'unknown'
-    except:
-        return 'unknown'
-
-def convert_mp4_to_mp3(input_path):
-
-    try:
-        import subprocess
-        
-        # Create output path
-        base_name = os.path.splitext(input_path)[0]
-        output_path = base_name + "_converted.mp3"
-        
-        # Use ffmpeg to convert
-        cmd = [
-            'ffmpeg', '-i', input_path,
-            '-vn',  # No video
-            '-acodec', 'libmp3lame',  # MP3 codec
-            '-ab', '192k',  # Bitrate
-            '-ar', '16000',  # Sample rate for Whisper
-            '-y',  # Overwrite output
-            output_path
-        ]
-        
-        subprocess.run(cmd, check=True, capture_output=True)
-        return output_path
-        
-    except Exception as e:
-        raise Exception(f"MP4 to MP3 conversion failed: {str(e)}")
 
 def transcribe_with_progress(transcribe_func, filepath, session_id, start_progress, end_progress):
     """Wrapper function to provide progress updates during transcription"""
@@ -169,26 +123,11 @@ def simulate_chunked_transcription(transcribe_func, filepath, session_id, start_
     
     return transcription_result['text']
 
-def process_transcription_async(filepath, filename, session_id, language='en'):
+def process_transcription_async(filepath, filename, session_id):
     """Process transcription in background thread with progress updates"""
     try:
         # Stage 1: Analyze audio
         update_progress(session_id, 'analyze', 25, 'Analyzing audio...', 'Checking file format and audio quality')
-
-                # Check if file is MP4 and convert to MP3
-        file_ext = os.path.splitext(filepath)[1].lower()
-        original_filepath = filepath
-        
-        if file_ext == '.mp4':
-            update_progress(session_id, 'process', 25, 'Converting MP4 to MP3...', 'Converting video to audio format')
-            try:
-                filepath = convert_mp4_to_mp3(filepath)
-                update_progress(session_id, 'process', 35, 'Conversion complete', 'Audio extracted from video')
-            except Exception as e:
-                update_progress(session_id, 'error', 0, 'Error', f'MP4 conversion failed: {str(e)}')
-                return
-        else:
-            update_progress(session_id, 'process', 35, 'Processing audio...', 'Audio file ready for transcription')
         
         audio_info = transcription_service.get_audio_info(filepath)
         duration_str = f"{audio_info['duration']:.1f}s"
@@ -216,54 +155,32 @@ def process_transcription_async(filepath, filename, session_id, language='en'):
         
         try:
             if file_size < max_simple_size and audio_info['duration'] < max_simple_duration:
-                transcription = transcribe_with_progress(
-                    lambda fp: transcription_service.transcribe_simple(fp, language=language),
-                    filepath, session_id, 70, 85
-                )
+                # For small files, simulate chunked progress
+                transcription = transcribe_with_progress(transcription_service.transcribe_simple, filepath, session_id, 70, 85)
                 method = "Direct processing (small file)"
             else:
-                transcription = transcribe_with_progress(
-                    lambda fp: transcription_service.transcribe(fp, language=language),
-                    filepath, session_id, 70, 85
-                )
+                # Use actual chunked transcription
+                transcription = transcribe_with_progress(transcription_service.transcribe, filepath, session_id, 70, 85)
                 method = "Chunked processing"
         except Exception as transcribe_error:
+            # Fallback method
             try:
                 if file_size < max_simple_size and audio_info['duration'] < max_simple_duration:
-                    transcription = transcribe_with_progress(
-                        lambda fp: transcription_service.transcribe(fp, language=language),
-                        filepath, session_id, 70, 85
-                    )
+                    transcription = transcribe_with_progress(transcription_service.transcribe, filepath, session_id, 70, 85)
                     method = "Chunked processing (fallback)"
                 else:
-                    transcription = transcribe_with_progress(
-                        lambda fp: transcription_service.transcribe_simple(fp, language=language),
-                        filepath, session_id, 70, 85
-                    )
+                    transcription = transcribe_with_progress(transcription_service.transcribe_simple, filepath, session_id, 70, 85)
                     method = "Direct processing (fallback)"
             except Exception as fallback_error:
                 try:
                     processed_path = transcription_service.preprocess_audio(filepath)
-                    transcription = transcribe_with_progress(
-                        lambda fp: transcription_service.transcribe(fp, language=language),
-                        processed_path, session_id, 70, 85
-                    )
+                    transcription = transcribe_with_progress(transcription_service.transcribe, processed_path, session_id, 70, 85)
                     method = "Preprocessed + chunked"
                     if os.path.exists(processed_path):
                         os.remove(processed_path)
                 except Exception:
                     raise transcribe_error
-        try:
-            detected_lang = detect(transcription)
-            if language == "ne" and detected_lang == "en":
-                update_progress(session_id, 'error', 0, 'Error', 'You selected Nepali, but the audio appears to be in English. Please select the correct language.')
-                return
-            elif language == "en" and detected_lang == "ne":
-                update_progress(session_id, 'error', 0, 'Error', 'You selected English, but the audio appears to be in Nepali. Please select the correct language.')
-                return
-        except Exception:
-            # If detection fails, ignore and proceed
-            pass
+        
         # Stage 4: Summarization
         update_progress(session_id, 'summarize', 90, 'Generating summary...', 'Creating intelligent summary of content')
         
@@ -375,9 +292,6 @@ def transcribe():
     if file.filename == '':
         return jsonify({"error": "No file selected"}), 400
 
-    # Get language from form data, default to 'en'
-    language = request.form.get("language", "en")
-
     # Check file extension
     allowed_extensions = {'.mp3', '.wav', '.m4a', '.flac', '.ogg', '.aac', '.wma'}
     file_ext = os.path.splitext(file.filename)[1].lower()
@@ -400,7 +314,7 @@ def transcribe():
         # Start background processing
         thread = threading.Thread(
             target=process_transcription_async,
-            args=(filepath, filename, session_id, language)
+            args=(filepath, filename, session_id)
         )
         thread.start()
         
