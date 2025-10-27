@@ -1,4 +1,7 @@
 .venv/
 __pycache__/
 instance/
-model_cache/
+model_cache/-e 
+# Environment files
+*.env
+*.env.*
