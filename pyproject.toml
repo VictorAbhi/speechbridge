@@ -21,6 +21,7 @@ dependencies = [
     "openai-whisper>=20250625",
     "moviepy>=2.2.1",
     "langdetect>=1.0.9",
+    "pydub>=0.25.1",
 ]
 
 [tool.uv]

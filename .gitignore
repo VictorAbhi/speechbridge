@@ -6,3 +6,5 @@ model_cache/-e
 *.env
 *.env.*
 data/
+dataset/
+cleaned_training_data/
