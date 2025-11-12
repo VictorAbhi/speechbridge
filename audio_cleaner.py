@@ -353,7 +353,7 @@ def main():
                 "cleaned": chunk["cleaned"]
             })
         
-        metadata_path = os.path.join(args.output_dir, "metadata.json")
+        metadata_path = os.path.join(args.output_dir, "metadata1.json")
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, indent=2, ensure_ascii=False)
         
