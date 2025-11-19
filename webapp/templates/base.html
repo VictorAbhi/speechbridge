@@ -247,7 +247,7 @@
     <header>
         <div class="container">
             <div class="header-content">
-                <a href="{{ url_for('index') if session.get('username') else url_for('login_page') }}" class="logo">
+                <a href="{{ url_for('dashboard') if session.get('username') else url_for('login_page') }}" class="logo">
                     SpeechBridge
                 </a>
                 <nav>

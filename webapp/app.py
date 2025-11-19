@@ -17,11 +17,18 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Initialize services
 auth_handler = AuthHandler()
-transcription_service = TranscriptionService()
+# Transcription services will be created on-demand based on language
+transcription_services = {}  # Cache for language-specific services
 summarizer = SummarizerService()
 
 # Global dictionary to store progress for each session
 progress_data = {}
+
+def get_transcription_service(language="en"):
+    """Get or create a transcription service for the specified language"""
+    if language not in transcription_services:
+        transcription_services[language] = TranscriptionService(language=language)
+    return transcription_services[language]
 
 # ----------------------
 # Helper Functions
@@ -45,11 +52,11 @@ def update_progress(session_id, stage, progress, message, details="", partial_te
         'timestamp': time.time()
     }
 
-def transcribe_with_progress(transcribe_func, filepath, session_id, start_progress, end_progress):
+def transcribe_with_progress(transcribe_func, filepath, session_id, start_progress, end_progress, transcription_service=None):
     """Wrapper function to provide progress updates during transcription"""
     
     # If it's the chunked transcription method, we can provide real progress
-    if hasattr(transcription_service, 'transcribe_with_callback'):
+    if transcription_service and hasattr(transcription_service, 'transcribe_with_callback'):
         # Custom transcription with callback for real chunks
         def progress_callback(chunk_text, progress_percent):
             current_progress = start_progress + (progress_percent * (end_progress - start_progress) / 100)
@@ -123,9 +130,12 @@ def simulate_chunked_transcription(transcribe_func, filepath, session_id, start_
     
     return transcription_result['text']
 
-def process_transcription_async(filepath, filename, session_id):
+def process_transcription_async(filepath, filename, session_id, language="en"):
     """Process transcription in background thread with progress updates"""
     try:
+        # Get language-specific transcription service
+        transcription_service = get_transcription_service(language)
+        
         # Stage 1: Analyze audio
         update_progress(session_id, 'analyze', 25, 'Analyzing audio...', 'Checking file format and audio quality')
         
@@ -153,28 +163,29 @@ def process_transcription_async(filepath, filename, session_id):
         # Initialize partial transcription
         progress_data[session_id]['partial_transcription'] = ""
         
+        # Around line 162-173 in process_transcription_async
         try:
             if file_size < max_simple_size and audio_info['duration'] < max_simple_duration:
                 # For small files, simulate chunked progress
-                transcription = transcribe_with_progress(transcription_service.transcribe_simple, filepath, session_id, 70, 85)
+                transcription = transcribe_with_progress(transcription_service.transcribe_simple, filepath, session_id, 70, 85, transcription_service)
                 method = "Direct processing (small file)"
             else:
                 # Use actual chunked transcription
-                transcription = transcribe_with_progress(transcription_service.transcribe, filepath, session_id, 70, 85)
+                transcription = transcribe_with_progress(transcription_service.transcribe, filepath, session_id, 70, 85, transcription_service)
                 method = "Chunked processing"
         except Exception as transcribe_error:
             # Fallback method
             try:
                 if file_size < max_simple_size and audio_info['duration'] < max_simple_duration:
-                    transcription = transcribe_with_progress(transcription_service.transcribe, filepath, session_id, 70, 85)
+                    transcription = transcribe_with_progress(transcription_service.transcribe, filepath, session_id, 70, 85, transcription_service)
                     method = "Chunked processing (fallback)"
                 else:
-                    transcription = transcribe_with_progress(transcription_service.transcribe_simple, filepath, session_id, 70, 85)
+                    transcription = transcribe_with_progress(transcription_service.transcribe_simple, filepath, session_id, 70, 85, transcription_service)
                     method = "Direct processing (fallback)"
             except Exception as fallback_error:
                 try:
                     processed_path = transcription_service.preprocess_audio(filepath)
-                    transcription = transcribe_with_progress(transcription_service.transcribe, processed_path, session_id, 70, 85)
+                    transcription = transcribe_with_progress(transcription_service.transcribe, processed_path, session_id, 70, 85, transcription_service)
                     method = "Preprocessed + chunked"
                     if os.path.exists(processed_path):
                         os.remove(processed_path)
@@ -230,11 +241,29 @@ def process_transcription_async(filepath, filename, session_id):
 # Routes
 # ----------------------
 
-# Home page
+# Dashboard page (language selection)
 @app.route("/", methods=["GET"])
+@login_required
+def dashboard():
+    return render_template("dashboard.html")
+
+# Old index route - kept for backward compatibility
+@app.route("/index", methods=["GET"])
 @login_required
 def index():
     return render_template("index.html")
+
+# English transcription page
+@app.route("/transcribe/english", methods=["GET"])
+@login_required
+def transcribe_english_page():
+    return render_template("transcribe_english.html")
+
+# Nepali transcription page
+@app.route("/transcribe/nepali", methods=["GET"])
+@login_required
+def transcribe_nepali_page():
+    return render_template("transcribe_nepali.html")
 
 # GET login page
 @app.route("/login", methods=["GET"])
@@ -252,7 +281,7 @@ def login():
     
     if auth_handler.login(username, password):
         session['username'] = username
-        return redirect(url_for('index'))
+        return redirect(url_for('dashboard'))
     else:
         return render_template("login.html", error="Invalid credentials")
 
@@ -301,6 +330,11 @@ def transcribe():
     filename = secure_filename(file.filename)
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
     
+    # Get language parameter (default to English)
+    language = request.form.get('language', 'en')
+    if language not in ['en', 'ne']:
+        return jsonify({"error": "Invalid language. Use 'en' or 'ne'"}), 400
+    
     try:
         # Save uploaded file
         file.save(filepath)
@@ -309,12 +343,13 @@ def transcribe():
         session_id = str(uuid.uuid4())
         
         # Initialize progress
-        update_progress(session_id, 'upload', 15, 'File uploaded successfully', 'Starting transcription process')
+        lang_name = "English" if language == "en" else "Nepali"
+        update_progress(session_id, 'upload', 15, 'File uploaded successfully', f'Starting {lang_name} transcription process')
         
-        # Start background processing
+        # Start background processing with language parameter
         thread = threading.Thread(
             target=process_transcription_async,
-            args=(filepath, filename, session_id)
+            args=(filepath, filename, session_id, language)
         )
         thread.start()
         

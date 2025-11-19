@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - SpeechBridge{% endblock %}
+
+{% block content %}
+<div class="card" style="text-align: center;">
+    <h1 style="margin-bottom: 1rem; color: #1f2937; font-size: 2.5rem;">
+        🎵 Welcome to SpeechBridge
+    </h1>
+    <p style="font-size: 1.2rem; color: #6b7280; margin-bottom: 3rem;">
+        Choose your language for audio transcription
+    </p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; max-width: 900px; margin: 0 auto;">
+        <!-- English Card -->
+        <a href="{{ url_for('transcribe_english_page') }}" style="text-decoration: none;" data-testid="english-card-link">
+            <div class="language-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" data-testid="english-card">
+                <div class="flag-container">
+                    <img src="https://images.unsplash.com/photo-1678371271544-d7394c57b3a4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODB8MHwxfHNlYXJjaHwxfHxlbmdsaXNoJTIwZmxhZ3xlbnwwfHx8fDE3NjMzNjI2OTR8MA&ixlib=rb-4.1.0&q=85" alt="English Flag" class="flag-image">
+                </div>
+                <h2 style="color: white; font-size: 2rem; margin: 1.5rem 0 0.5rem;">English</h2>
+                <p style="color: rgba(255,255,255,0.9); font-size: 1rem; margin-bottom: 1.5rem;">Transcribe English audio files</p>
+                <div class="card-button">
+                    Start English Transcription →
+                </div>
+            </div>
+        </a>
+
+        <!-- Nepali Card -->
+        <a href="{{ url_for('transcribe_nepali_page') }}" style="text-decoration: none;" data-testid="nepali-card-link">
+            <div class="language-card" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);" data-testid="nepali-card">
+                <div class="flag-container">
+                    <img src="https://images.unsplash.com/photo-1634629513555-00ef0b0224a4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwyfHxuZXBhbCUyMGZsYWd8ZW58MHx8fHwxNzYzMzYyNjk5fDA&ixlib=rb-4.1.0&q=85" alt="Nepali Flag" class="flag-image">
+                </div>
+                <h2 style="color: white; font-size: 2rem; margin: 1.5rem 0 0.5rem;">Nepali</h2>
+                <p style="color: rgba(255,255,255,0.9); font-size: 1rem; margin-bottom: 1.5rem;">नेपाली अडियो फाइल ट्रान्सक्राइब गर्नुहोस्</p>
+                <div class="card-button">
+                    Start Nepali Transcription →
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- Features Section -->
+    <div class="feature-grid" style="color: white; margin-top: 3rem;">
+        <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3 style="margin-bottom: 0.5rem;">Fast Processing</h3>
+            <p style="font-size: 0.9rem; opacity: 0.9;">AI-powered transcription with quick turnaround times</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <h3 style="margin-bottom: 0.5rem;">High Accuracy</h3>
+            <p style="font-size: 0.9rem; opacity: 0.9;">Advanced speech recognition for precise results</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🔒</div>
+            <h3 style="margin-bottom: 0.5rem;">Secure</h3>
+            <p style="font-size: 0.9rem; opacity: 0.9;">Your files are processed securely and not stored</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🌍</div>
+            <h3 style="margin-bottom: 0.5rem;">Multi-Language</h3>
+            <p style="font-size: 0.9rem; opacity: 0.9;">Support for English and Nepali transcription</p>
+        </div>
+    </div>
+</div>
+
+<style>
+.language-card {
+    padding: 2rem;
+    border-radius: 20px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.language-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.language-card:hover::before {
+    opacity: 1;
+}
+
+.language-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.flag-container {
+    width: 200px;
+    height: 150px;
+    margin: 0 auto;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    border: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+.flag-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.card-button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    border-radius: 10px;
+    color: white;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.language-card:hover .card-button {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: white;
+    transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+    .flag-container {
+        width: 150px;
+        height: 100px;
+    }
+}
+</style>
+{% endblock %}

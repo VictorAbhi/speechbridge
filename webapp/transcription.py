@@ -8,25 +8,39 @@ from tempfile import mkdtemp
 from transformers import AutoProcessor, AutoModelForSpeechSeq2Seq
 
 class TranscriptionService:
-    def __init__(self, model_name="openai/whisper-small"):
+    def __init__(self, model_name="openai/whisper-small", language="en"):
         """
         Initialize the transcription service with Whisper model
         Using the same approach as your working notebook
+        
+        Args:
+            model_name: Model to use for transcription
+            language: Language code ('en' for English, 'ne' for Nepali)
         """
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.language = language
+        
+        # Set model based on language
+        if language == "ne":
+            # Placeholder for Nepali model - user will update this with their fine-tuned model
+            self.model_name = "Faith-nchifor/whisper-small-nep"  # TODO: Replace with fine-tuned Nepali model path
+            print(f"Using placeholder model for Nepali. Please update with fine-tuned model path.")
+        else:
+            # English model
+            self.model_name = model_name
         
         # Load processor and model (similar to your notebook)
         try:
-            self.processor = AutoProcessor.from_pretrained(model_name)
-            self.model = AutoModelForSpeechSeq2Seq.from_pretrained(model_name)
+            self.processor = AutoProcessor.from_pretrained(self.model_name)
+            self.model = AutoModelForSpeechSeq2Seq.from_pretrained(self.model_name)
             self.model.to(self.device)
             self.model_loaded = True
-            print(f"Model loaded successfully on {self.device}")
+            print(f"Model loaded successfully on {self.device} for language: {language}")
         except Exception as e:
             print(f"Error loading model: {e}")
             # Fallback to pipeline approach
             from transformers import pipeline
-            self.pipe = pipeline("automatic-speech-recognition", model=model_name, device=0 if torch.cuda.is_available() else -1)
+            self.pipe = pipeline("automatic-speech-recognition", model=self.model_name, device=0 if torch.cuda.is_available() else -1)
             self.model_loaded = False
 
     def load_audio_chunks(self, file_path, chunk_duration=30, sample_rate=16000, overlap=1.5):

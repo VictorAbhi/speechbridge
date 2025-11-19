@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Nepali Transcription - SpeechBridge{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div style="text-align: center; margin-bottom: 2rem;">
+        <a href="{{ url_for('dashboard') }}" style="color: #dc2626; text-decoration: none; font-weight: 600;" data-testid="back-to-dashboard">
+            ← Back to Dashboard
+        </a>
+    </div>
+    
+    <h1 style="text-align: center; margin-bottom: 1rem; color: #1f2937; font-size: 2.5rem;">
+        🇳🇵 Nepali Audio Transcription
+    </h1>
+    
+    <p style="text-align: center; font-size: 1.1rem; color: #6b7280; margin-bottom: 2rem;">
+        नेपाली अडियो फाइल ट्रान्सक्रिप्शनको लागि अपलोड गर्नुहोस्
+    </p>
+
+    <!-- Upload Form -->
+    <div id="uploadForm" class="card" style="background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);">
+        <h2 style="color: #7f1d1d; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+            📤 Upload Audio File
+        </h2>
+        
+        <form id="transcriptionForm" enctype="multipart/form-data">
+            <input type="hidden" name="language" value="ne">
+            <div class="form-group">
+                <label for="audioFile">Select Audio File:</label>
+                <div class="file-upload-area" onclick="document.getElementById('audioFile').click();" data-testid="file-upload-area">
+                    <input type="file" id="audioFile" name="file" accept=".mp3,.wav,.m4a,.flac,.ogg,.aac,.wma" style="display: none;" required data-testid="audio-file-input">
+                    <div id="fileUploadContent">
+                        <div class="feature-icon">🎵</div>
+                        <p style="font-size: 1.1rem; color: #374151; margin-bottom: 0.5rem; font-weight: 600;">
+                            Click to select or drag & drop your audio file
+                        </p>
+                        <p style="color: #6b7280; font-size: 0.9rem;">
+                            Supported formats: MP3, WAV, M4A, FLAC, OGG, AAC, WMA
+                        </p>
+                    </div>
+                    <div id="selectedFile" style="display: none;">
+                        <div class="feature-icon">📁</div>
+                        <p style="color: #059669; font-weight: 600;" id="fileName"></p>
+                        <p style="color: #6b7280; font-size: 0.9rem;">Click to change file</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <button type="submit" class="btn" id="submitBtn" style="background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);" data-testid="start-transcription-btn">
+                    🚀 Start Nepali Transcription
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Live Transcription Area -->
+    <div id="liveTranscriptionContainer" style="display: none; margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-radius: 15px; border-left: 4px solid #22c55e;">
+        <h3 style="color: #166534; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            📝 Live Transcription
+            <span style="font-size: 0.8rem; color: #64748b; font-weight: normal;">(Real-time preview)</span>
+        </h3>
+        
+        <div style="background: white; padding: 1.5rem; border-radius: 10px; min-height: 120px; max-height: 300px; overflow-y: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <p id="liveTranscriptionText" style="line-height: 1.6; color: #1f2937; font-size: 1rem; margin: 0; white-space: pre-wrap;">
+                <span style="color: #64748b; font-style: italic;">Transcription will appear here as it's processed...</span>
+            </p>
+            <span id="typingIndicator" style="display: none; color: #3b82f6; animation: pulse 1.5s infinite;">●●●</span>
+        </div>
+    </div>
+
+    <!-- Progress Container -->
+    <div id="progressContainer" style="display: none; margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 15px; border: 1px solid rgba(59, 130, 246, 0.2);">
+        <div style="display: flex; justify-content: center; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+            <div class="stage pending" id="stage-upload">📁 Upload</div>
+            <div class="stage pending" id="stage-analyze">🔍 Analyze</div>
+            <div class="stage pending" id="stage-process">⚙️ Process</div>
+            <div class="stage pending" id="stage-transcribe">📝 Transcribe</div>
+            <div class="stage pending" id="stage-summarize">📑 Summarize</div>
+        </div>
+        
+        <div style="text-align: center; color: #1e40af; font-weight: 600; margin-bottom: 0.5rem;" id="progressText">Preparing upload...</div>
+        <div style="width: 100%; height: 20px; background: #e5e7eb; border-radius: 10px; overflow: hidden; margin: 1rem 0; box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);">
+            <div id="progressFill" style="height: 100%; background: linear-gradient(90deg, #3b82f6, #1d4ed8, #3b82f6); background-size: 200% 100%; animation: shimmer 2s infinite; border-radius: 10px; width: 0%; transition: width 0.5s ease;"></div>
+        </div>
+        <div style="color: #64748b; font-size: 0.9rem; text-align: center;" id="progressDetails">Please wait while we process your audio file</div>
+        <div style="text-align: center; margin-top: 1rem;">
+            <span style="font-weight: 600; color: #1e40af;" id="progressPercentage">0%</span>
+        </div>
+    </div>
+
+    <!-- Results Container -->
+    <div id="resultContainer" style="display: none; margin-top: 2rem; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border-radius: 15px; padding: 1.5rem;">
+        <h3 style="color: #0c4a6e; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+            📝 Transcription Result
+            <span style="font-size: 0.9rem; color: #64748b; font-weight: normal;" id="resultFilename"></span>
+        </h3>
+        
+        <div id="resultInfo" style="background: rgba(255,255,255,0.7); padding: 0.75rem; border-radius: 8px; margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.85rem; color: #475569;"></div>
+        
+        <div style="background: white; padding: 1.5rem; border-radius: 10px; border-left: 4px solid #0ea5e9; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div id="transcriptionContainer">
+                <p id="transcriptionText" style="line-height: 1.6; color: #1f2937; font-size: 1.05rem; white-space: pre-wrap;"></p>
+                <p id="summaryText" style="display: none; line-height: 1.6; color: #1f2937; font-size: 1.05rem; white-space: pre-wrap;"></p>
+            </div>
+        </div>
+        <div style="margin-top: 1rem; text-align: right;">
+            <button onclick="copyTranscription()" class="btn btn-secondary" style="background: #059669; margin-right: 0.5rem;" data-testid="copy-text-btn">
+                📋 Copy Text
+            </button>
+            <button onclick="toggleSummary()" class="btn btn-secondary" style="background: #d97706; margin-right: 0.5rem;" data-testid="toggle-summary-btn">
+                📑 Show Summary
+            </button>
+            <button onclick="resetForm()" class="btn btn-secondary" style="background: #6366f1;" data-testid="new-file-btn">
+                🔄 New File
+            </button>
+        </div>
+    </div>
+
+    <!-- Error Container -->
+    <div id="errorContainer" style="display: none; margin-top: 2rem; padding: 1.5rem; background: #fef2f2; border-radius: 15px; border-left: 4px solid #ef4444; color: #dc2626;">
+        <strong>Error:</strong> <span id="errorText"></span>
+        <div style="margin-top: 1rem;">
+            <button onclick="resetForm()" class="btn" style="background: #6366f1;">
+                🔄 Try Again
+            </button>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+.stage {
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.stage.active {
+    background: #3b82f6;
+    color: white;
+    transform: scale(1.05);
+}
+
+.stage.completed {
+    background: #10b981;
+    color: white;
+}
+
+.stage.pending {
+    background: #e5e7eb;
+    color: #6b7280;
+}
+</style>
+
+<script src="{{ url_for('static', filename='transcription.js') }}"></script>
+{% endblock %}
