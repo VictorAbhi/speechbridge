@@ -23,7 +23,7 @@ dependencies = [
     "langdetect>=1.0.9",
     "pydub>=0.25.1",
     "pyxlsb>=1.0.10",
-    "datasets>=4.4.1",
+    "datasets==2.21",
 ]
 
 [tool.uv]

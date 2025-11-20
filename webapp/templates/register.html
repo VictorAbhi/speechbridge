@@ -64,7 +64,7 @@
 
             <div style="margin-bottom: 1.5rem;">
                 <button type="submit" class="btn" style="width: 100%;" id="registerBtn">
-                    🚀 Create Account
+                    Create Account
                 </button>
             </div>
         </form>
@@ -72,7 +72,7 @@
         <div style="text-align: center; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
             <p style="color: #6b7280; margin-bottom: 1rem;">Already have an account?</p>
             <a href="{{ url_for('login_page') }}" class="btn btn-secondary">
-                🔐 Sign In
+                Sign In
             </a>
         </div>
 
@@ -116,10 +116,10 @@
             }
             
             if (password.value === confirmPassword.value) {
-                passwordMatch.textContent = '✅ Passwords match';
+                passwordMatch.textContent = 'Passwords match';
                 passwordMatch.style.color = '#059669';
             } else {
-                passwordMatch.textContent = '❌ Passwords do not match';
+                passwordMatch.textContent = 'Passwords do not match';
                 passwordMatch.style.color = '#dc2626';
             }
         }
