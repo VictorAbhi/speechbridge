@@ -19,7 +19,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 auth_handler = AuthHandler()
 # Transcription services will be created on-demand based on language
 transcription_services = {}  # Cache for language-specific services
-summarizer = SummarizerService()
 
 # Global dictionary to store progress for each session
 progress_data = {}
@@ -195,7 +194,8 @@ def process_transcription_async(filepath, filename, session_id, language="en"):
         # Stage 4: Summarization
         update_progress(session_id, 'summarize', 90, 'Generating summary...', 'Creating intelligent summary of content')
         
-        summary = summarizer.summarize(transcription) if transcription else ""
+        summarizer = SummarizerService()
+        summary = summarizer.summarize(transcription, language=language) if transcription else ""
         
         # Check if transcription is meaningful
         if not transcription or transcription.lower() in ["no speech detected.", "no clear speech detected in the audio file.", ""]:

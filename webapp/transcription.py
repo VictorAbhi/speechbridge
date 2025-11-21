@@ -5,6 +5,8 @@ import soundfile as sf
 import os
 import shutil
 from tempfile import mkdtemp
+import scipy.signal as sps
+import noisereduce as nr
 from transformers import AutoProcessor, AutoModelForSpeechSeq2Seq
 
 class TranscriptionService:
@@ -172,29 +174,30 @@ class TranscriptionService:
         except Exception as e:
             raise Exception(f"Error reading audio file: {str(e)}")
 
-    def preprocess_audio(self, input_path, output_path=None):
-        """
-        Optional: Preprocess audio to improve transcription quality
-        (Similar to your denoising step in the notebook)
-        """
-        try:
-            # Load audio
-            audio, sr = librosa.load(input_path, sr=16000)  # Standard rate for Whisper
-            
-            # Normalize audio
-            if np.max(np.abs(audio)) > 0:
-                audio = audio / np.max(np.abs(audio)) * 0.95
-            
-            # Save processed audio if output path provided
-            if output_path:
-                sf.write(output_path, audio, sr)
-                return output_path
-            else:
-                # Create temporary file
-                temp_dir = mkdtemp()
-                temp_path = os.path.join(temp_dir, "processed_audio.wav")
-                sf.write(temp_path, audio, sr)
-                return temp_path
-                
-        except Exception as e:
-            raise Exception(f"Audio preprocessing error: {str(e)}")
+def preprocess_audio(self, input_path, output_path=None):
+    try:
+        audio, sr = librosa.load(input_path, sr=16000)
+
+        # Noise reduction
+        audio = nr.reduce_noise(y=audio, sr=sr)
+
+        # High-pass filter
+        b, a = sps.butter(3, 100/(sr/2), btype='highpass')
+        audio = sps.lfilter(b, a, audio)
+
+        # Normalize
+        if np.max(np.abs(audio)) > 0:
+            audio = audio / np.max(np.abs(audio)) * 0.95
+        
+        # Save
+        if output_path:
+            sf.write(output_path, audio, sr)
+            return output_path
+
+        temp_dir = mkdtemp()
+        temp_path = os.path.join(temp_dir, "processed_audio.wav")
+        sf.write(temp_path, audio, sr)
+        return temp_path
+
+    except Exception as e:
+        raise Exception(f"Audio preprocessing error: {str(e)}")

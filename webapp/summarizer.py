@@ -1,91 +1,138 @@
-from transformers import pipeline, BartForConditionalGeneration, BartTokenizer
-import logging
+# summarizer.py
+import re
+import numpy as np
+import torch
+from transformers import AutoTokenizer, AutoModel
+from sklearn.cluster import KMeans
+from typing import Literal, List
+
+language = Literal["en", "ne"]
+
 
 class SummarizerService:
-    def __init__(self, model_name: str = "facebook/bart-large-cnn", device: int = -1):
+    """
+    Extractive summarizer based on sentence embeddings + K-Means clustering.
+    Supports English (en) and Nepali (ne).
+    """
+
+    # Pretrained model mapping
+    _MODELS = {
+        "en": "sentence-transformers/all-MiniLM-L6-v2",
+        "ne": "Sakonii/distilbert-base-nepali",
+    }
+
+    def __init__(self):
+        self.models = {}
+        self.tokenizers = {}
+
+    def _load_model(self, lang: language):
+        if lang not in self.models:
+            model_name = self._MODELS[lang]
+            print(f"Loading model for {lang.upper()}: {model_name}")
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model = AutoModel.from_pretrained(model_name)
+
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            model.to(device)
+            model.eval()  # Set to evaluation mode
+
+            self.tokenizers[lang] = tokenizer
+            self.models[lang] = model
+        return self.models[lang], self.tokenizers[lang]
+
+    @staticmethod
+    def _split_into_sentences(text: str, lang: language) -> List[str]:
         """
-        Initialize the summarizer pipeline by loading model and tokenizer from the default Hugging Face cache.
+        Simple sentence splitter using punctuation.
+        """
+        if lang == "ne":
+            sentences = re.split(r'[।!?]+', text)
+        else:
+            sentences = re.split(r'[.!?]+', text)
+        return [s.strip() for s in sentences if s.strip()]
+
+    @staticmethod
+    def _find_optimal_k(embeddings: np.ndarray, max_k: int = 10) -> int:
+        """
+        Elbow method to choose number of clusters based on embeddings.
+        """
+        if len(embeddings) <= 2:
+            return 1
+
+        max_k = min(max_k, len(embeddings))
+        sse = []
+        K = range(2, max_k + 1)
+
+        for k in K:
+            kmeans = KMeans(n_clusters=k, n_init=10, random_state=42)
+            kmeans.fit(embeddings)
+            sse.append(kmeans.inertia_)
+
+        diffs = np.diff(sse)
+        if len(diffs) == 0:
+            return 1
+        optimal_idx = np.argmax(diffs) + 2
+        return min(optimal_idx, max_k)
+
+    def _get_sentence_embeddings(self, sentences: List[str], model, tokenizer, device) -> np.ndarray:
+        embeddings = []
+        for sent in sentences:
+            inputs = tokenizer(
+                sent,
+                return_tensors="pt",
+                truncation=True,
+                max_length=512,
+                padding=True
+            ).to(device)
+
+            with torch.no_grad():
+                outputs = model(**inputs)
+            # CLS token embedding
+            emb = outputs.last_hidden_state[:, 0, :].cpu().numpy().squeeze()
+            embeddings.append(emb)
+        return np.vstack(embeddings)
+
+    def summarize(self, text: str, language: language = "en", ratio: float = 0.2) -> str:
+        """
+        Generate extractive summary.
 
         Args:
-            model_name (str): Hugging Face model name for summarization (e.g., facebook/bart-large-cnn).
-            device (int): Device index (-1 for CPU, 0 or higher for GPU).
-        """
-        # Configure logging
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
-        self.logger.info(f"Initializing summarizer with model: {model_name}")
-
-        try:
-            # Load tokenizer
-            self.logger.info(f"Loading tokenizer for {model_name} from default cache")
-            self.tokenizer = BartTokenizer.from_pretrained(
-                model_name,
-                local_files_only=False  # Allow initial download if not cached
-            )
-            self.logger.info("Tokenizer loaded successfully")
-
-            # Load model
-            self.logger.info(f"Loading model {model_name} from default cache")
-            self.model = BartForConditionalGeneration.from_pretrained(
-                model_name,
-                local_files_only=False  # Allow initial download if not cached
-            )
-            self.logger.info("Model loaded successfully")
-
-            # Initialize pipeline
-            self.summarizer = pipeline(
-                "summarization",
-                model=self.model,
-                tokenizer=self.tokenizer,
-                device=device
-            )
-            self.logger.info(f"Successfully initialized summarization pipeline for {model_name}")
-
-            # Update to local_files_only for subsequent runs
-            self.tokenizer = BartTokenizer.from_pretrained(model_name, local_files_only=True)
-            self.model = BartForConditionalGeneration.from_pretrained(model_name, local_files_only=True)
-            self.summarizer = pipeline(
-                "summarization",
-                model=self.model,
-                tokenizer=self.tokenizer,
-                device=device
-            )
-
-        except Exception as e:
-            self.logger.error(f"Failed to load model or tokenizer: {str(e)}")
-            raise RuntimeError(
-                f"Model or tokenizer initialization failed: {str(e)}. "
-                "Ensure internet connection for initial download or check cache at ~/.cache/huggingface/transformers."
-            )
-
-    def summarize(self, text: str, max_length: int = 130, min_length: int = 30, do_sample: bool = False) -> str:
-        """
-        Generate a summary for the given text.
-
-        Args:
-            text (str): Input text to summarize.
-            max_length (int): Maximum length of the summary.
-            min_length (int): Minimum length of the summary.
-            do_sample (bool): Whether to use sampling; deterministic by default.
+            text (str): Input text.
+            language (en|ne): Language code.
+            ratio (0.0–1.0): Proportion of sentences to keep (default 0.2).
 
         Returns:
-            str: The generated summary text.
+            str: Extractive summary.
         """
         if not text or not text.strip():
-            self.logger.warning("Empty or invalid input text for summarization")
             return ""
 
-        try:
-            self.logger.info(f"Starting summarization process for text (length: {len(text)} characters)")
-            summary_list = self.summarizer(
-                text,
-                max_length=max_length,
-                min_length=min_length,
-                do_sample=do_sample
-            )
-            summary = summary_list[0]['summary_text'] if summary_list else ""
-            self.logger.info(f"Summarization completed successfully (summary length: {len(summary)} characters)")
-            return summary
-        except Exception as e:
-            self.logger.error(f"Summarization failed: {str(e)}")
+        model, tokenizer = self._load_model(language)
+        sentences = self._split_into_sentences(text, language)
+        if not sentences:
             return ""
+
+        device = next(model.parameters()).device
+        embeddings = self._get_sentence_embeddings(sentences, model, tokenizer, device)
+
+        n_clusters = max(1, int(len(sentences) * ratio))
+        n_clusters = self._find_optimal_k(embeddings, max_k=n_clusters * 2)
+        n_clusters = min(n_clusters, len(sentences))
+
+        kmeans = KMeans(n_clusters=n_clusters, n_init=10, random_state=42)
+        kmeans.fit(embeddings)
+
+        # Select closest sentence to each cluster centroid
+        summary_indices = []
+        for i in range(n_clusters):
+            cluster_indices = np.where(kmeans.labels_ == i)[0]
+            centroid = kmeans.cluster_centers_[i]
+            closest_idx = min(cluster_indices, key=lambda idx: np.linalg.norm(embeddings[idx] - centroid))
+            summary_indices.append(closest_idx)
+
+        # Sort sentences in original order
+        summary_sentences = [sentences[i] for i in sorted(summary_indices)]
+        joiner = "। " if language == "ne" else ". "
+        end_punct = "।" if language == "ne" else "."
+
+        return joiner.join(summary_sentences) + end_punct
