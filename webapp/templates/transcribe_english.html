@@ -29,7 +29,7 @@
             <div class="form-group">
                 <label for="audioFile">Select Audio File:</label>
                 <div class="file-upload-area" onclick="document.getElementById('audioFile').click();" data-testid="file-upload-area">
-                    <input type="file" id="audioFile" name="file" accept=".mp3,.wav,.m4a,.flac,.ogg,.aac,.wma" style="display: none;" required data-testid="audio-file-input">
+                    <input type="file" id="audioFile" name="file" accept="audio/*,video/*" style="display: none;" required data-testid="audio-file-input">
                     <div id="fileUploadContent">
                         <div class="feature-icon">🎵</div>
                         <p style="font-size: 1.1rem; color: #374151; margin-bottom: 0.5rem; font-weight: 600;">

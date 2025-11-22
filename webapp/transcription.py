@@ -26,7 +26,6 @@ class TranscriptionService:
         if language == "ne":
             # Placeholder for Nepali model - user will update this with their fine-tuned model
             self.model_name = "Faith-nchifor/whisper-small-nep"  # TODO: Replace with fine-tuned Nepali model path
-            print(f"Using placeholder model for Nepali. Please update with fine-tuned model path.")
         else:
             # English model
             self.model_name = model_name
