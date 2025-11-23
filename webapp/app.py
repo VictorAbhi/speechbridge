@@ -390,7 +390,7 @@ def simulate_chunked_transcription(transcribe_func, filepath, session_id, start_
         progress_data[session_id]['partial_transcription'] = partial_text
         
         update_progress(session_id, 'transcribe', chunk_progress, 
-                       f'Transcribing speech... ({((i+1)/len(sample_chunks)*100):.0f}%)',
+                       f'Transcribing speech... ({((i+1)/len(sample_chunks)*100)}%)',
                        f'Processing segment {i+1} of {len(sample_chunks)}', 
                        partial_text)
         
