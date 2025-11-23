@@ -52,13 +52,13 @@
                         <option value="ne">🇳🇵 Nepali (नेपाली)</option>
                     </select>
                     <p style="color: #6b7280; font-size: 0.85rem; margin-top: 0.5rem;">
-                        ℹ️ The system will validate that the audio matches the selected language
+                        The system will validate that the audio matches the selected language
                     </p>
                 </div>
                 
                 <div style="text-align: center; margin-top: 1.5rem;">
                     <button type="submit" class="btn" id="submitBtn">
-                        🚀 Start Transcription
+                        Start Transcription
                     </button>
                 </div>
             </form>
@@ -118,6 +118,9 @@
                 </button>
                 <button onclick="toggleSummary()" class="btn btn-secondary" style="background: #d97706; margin-right: 0.5rem;">
                     📑 Show Summary
+                </button>
+                <button onclick="downloadTranscription()" class="btn btn-secondary" style="background: #7c3aed; margin-right: 0.5rem;">
+                    💾 Download
                 </button>
                 <button onclick="resetForm()" class="btn btn-secondary" style="background: #6366f1;">
                     🔄 New File
@@ -508,6 +511,38 @@
             console.error('Could not copy text: ', err);
             alert('Failed to copy text to clipboard');
         });
+    }
+        function downloadTranscription() {
+        const textToDownload = isShowingSummary ? 
+            document.getElementById('summaryText').textContent : 
+            document.getElementById('transcriptionText').textContent;
+        
+        const filename = document.getElementById('resultFilename').textContent.replace(/[()]/g, '').trim() || 'transcription';
+        const baseFilename = filename.replace(/\.[^/.]+$/, ''); // Remove extension
+        const downloadFilename = isShowingSummary ? 
+            `${baseFilename}_summary.txt` : 
+            `${baseFilename}_transcription.txt`;
+        
+        // Create blob and download
+        const blob = new Blob([textToDownload], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = downloadFilename;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        
+        // Show feedback
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✅ Downloaded!';
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+        }, 2000);
     }
 
     function toggleSummary() {
